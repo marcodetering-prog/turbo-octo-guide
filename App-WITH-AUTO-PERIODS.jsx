@@ -8,6 +8,7 @@ import AISettingsPanel from './AISettingsPanel';
 import * as chunkingService from './chunkingService';
 import * as aiAnalyticsService from './aiAnalyticsService';
 import TrendComparisonView from './TrendComparisonView';
+import KPIDashboard from './KPIDashboard';
 
 export default function MultiClientAnalytics() {
   const [clients, setClients] = useState([]);
@@ -1071,26 +1072,9 @@ export default function MultiClientAnalytics() {
                       </div>
                     )}
 
-                    {/* Period Analytics Summary */}
+                    {/* KPI Dashboard */}
                     <div className="p-6">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div>
-                          <p className="text-sm text-gray-600">Total Inquiries</p>
-                          <p className="text-2xl font-bold text-blue-600">{period.analytics?.totalInquiries || 0}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Success Rate</p>
-                          <p className="text-2xl font-bold text-green-600">{period.analytics?.successRate || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Avg Response Time</p>
-                          <p className="text-2xl font-bold text-purple-600">{period.analytics?.avgResponseTime || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Data Quality</p>
-                          <p className="text-2xl font-bold text-orange-600">{period.analytics?.dataQualityScore || 'N/A'}</p>
-                        </div>
-                      </div>
+                      <KPIDashboard analytics={period.analytics} period={period} />
                     </div>
                   </div>
                 ))}
