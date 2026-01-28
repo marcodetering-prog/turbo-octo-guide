@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Settings, AlertCircle, CheckCircle, Loader2, Eye, EyeOff } from 'lucide-react';
-import * as aiService from './aiAnalyticsService';
+import * as aiService from '../services/aiAnalyticsService';
 
 export default function AISettingsPanel({ settings, onSettingsChange }) {
   const [isOpen, setIsOpen] = useState(false);

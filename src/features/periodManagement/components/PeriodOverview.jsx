@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, ChevronRight, TrendingUp, AlertCircle, CheckCircle, ArrowLeft, Trash2 } from 'lucide-react';
-import KPIDashboard from './KPIDashboard';
+import KPIDashboard from '../../analytics/components/KPIDashboard';
 
 export default function PeriodOverview({ client, onBack, onDeletePeriod }) {
   const [selectedPeriodId, setSelectedPeriodId] = useState(null);

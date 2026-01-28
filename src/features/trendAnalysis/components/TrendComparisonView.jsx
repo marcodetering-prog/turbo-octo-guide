@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, ArrowRight, CheckCircle, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
-import * as trendService from './trendAnalysisService';
-import * as aiService from './aiAnalyticsService';
+import * as trendService from '../services/trendAnalysisService';
+import * as aiService from '../../aiIntegration/services/aiAnalyticsService';
 
 export default function TrendComparisonView({ client, periods, onBack, aiSettings }) {
   const [selectedPeriods, setSelectedPeriods] = useState([]);

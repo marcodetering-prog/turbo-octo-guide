@@ -1,8 +1,8 @@
 import React from 'react';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { TrendingUp, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 
-export default function KPIDashboard({ analytics, period }) {
+export default function KPIDashboard({ analytics, period, onBack, client, periods, onTrendAnalysis }) {
   if (!analytics) return null;
 
   const COLORS = {
@@ -13,7 +13,37 @@ export default function KPIDashboard({ analytics, period }) {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <ArrowLeft className="w-6 h-6 text-gray-600" />
+              </button>
+            )}
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">{period.name}</h1>
+              <p className="text-gray-600">{period.startDate} to {period.endDate}</p>
+            </div>
+          </div>
+          {periods && periods.length >= 2 && onTrendAnalysis && (
+            <button
+              onClick={onTrendAnalysis}
+              className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+            >
+              <TrendingUp className="w-5 h-5" />
+              Compare Periods
+            </button>
+          )}
+        </div>
+
+        {/* KPI Content */}
+        <div className="space-y-8">
       {/* KEY METRICS GRID */}
       <div>
         <h3 className="text-xl font-bold text-gray-800 mb-4">Key Performance Indicators</h3>
@@ -303,6 +333,8 @@ export default function KPIDashboard({ analytics, period }) {
           </div>
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }
