@@ -94,15 +94,15 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
     const groupedData = groupDataByPeriods(csvData, selectedGrouping);
 
     // Calculate analytics for each period
-    const newPeriods = groupedData.map((period) => {
-      const { inquiries, validationIssues } = parseCSVData(period.data);
+    const newPeriods = Object.values(groupedData).map((periodData) => {
+      const { inquiries, validationIssues } = parseCSVData(periodData.data);
       const analytics = calculateAnalytics(inquiries, validationIssues);
 
       return {
         id: `period-${Date.now()}-${Math.random()}`,
-        name: period.name,
-        startDate: period.startDate,
-        endDate: period.endDate,
+        name: periodData.period.name,
+        startDate: periodData.period.startDate,
+        endDate: periodData.period.endDate,
         fileName: fileName,
         analytics: analytics,
         inquiryCount: inquiries.length,
