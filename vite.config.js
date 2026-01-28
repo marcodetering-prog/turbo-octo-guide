@@ -6,12 +6,15 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    chunkSizeWarningLimit: 600,
+    minify: 'esbuild',
     rollupOptions: {
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom'],
           'chart-vendor': ['recharts'],
-          'utils': ['papaparse', 'lucide-react']
+          'parse-vendor': ['papaparse'],
+          'icons': ['lucide-react']
         }
       }
     }

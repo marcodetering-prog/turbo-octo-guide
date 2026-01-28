@@ -9,6 +9,7 @@ import * as chunkingService from './chunkingService';
 import * as aiAnalyticsService from './aiAnalyticsService';
 import TrendComparisonView from './TrendComparisonView';
 import KPIDashboard from './KPIDashboard';
+import PeriodOverview from './PeriodOverview';
 
 export default function MultiClientAnalytics() {
   const [clients, setClients] = useState([]);
@@ -33,6 +34,9 @@ export default function MultiClientAnalytics() {
 
   // Trend comparison state
   const [showTrendAnalysis, setShowTrendAnalysis] = useState(false);
+
+  // Period overview state
+  const [showPeriodOverview, setShowPeriodOverview] = useState(false);
 
   const COLORS = {
     insideHours: '#10b981',
@@ -791,7 +795,16 @@ export default function MultiClientAnalytics() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                {selectedClient.periods.length >= 2 && !showTrendAnalysis && (
+                {selectedClient.periods.length > 0 && !showTrendAnalysis && !showPeriodOverview && (
+                  <button
+                    onClick={() => setShowPeriodOverview(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    <Calendar className="w-5 h-5" />
+                    All Periods
+                  </button>
+                )}
+                {selectedClient.periods.length >= 2 && !showTrendAnalysis && !showPeriodOverview && (
                   <button
                     onClick={() => setShowTrendAnalysis(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
@@ -927,6 +940,20 @@ export default function MultiClientAnalytics() {
             </div>
           )}
 
+          {/* Period Overview View */}
+          {showPeriodOverview ? (
+            <PeriodOverview
+              client={selectedClient}
+              onBack={() => setShowPeriodOverview(false)}
+              onDeletePeriod={(periodId) => {
+                const updatedPeriods = selectedClient.periods.filter(p => p.id !== periodId);
+                storage.updateClient(selectedClient.id, { periods: updatedPeriods });
+                loadClients();
+                setShowPeriodOverview(false);
+              }}
+            />
+          ) : null}
+
           {/* Trend Analysis View */}
           {showTrendAnalysis ? (
             <TrendComparisonView
@@ -938,7 +965,7 @@ export default function MultiClientAnalytics() {
           ) : null}
 
           {/* Periods List */}
-          {!showTrendAnalysis && (selectedClient.periods.length === 0 ? (
+          {!showTrendAnalysis && !showPeriodOverview && (selectedClient.periods.length === 0 ? (
             <div className="bg-white rounded-xl shadow-lg p-8 text-center">
               <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-800 mb-2">No Data Yet</h3>
