@@ -2,7 +2,8 @@
 
 const STORAGE_KEYS = {
   CLIENTS: 'tenant_analytics_clients',
-  SETTINGS: 'tenant_analytics_settings'
+  SETTINGS: 'tenant_analytics_settings',
+  AI_SETTINGS: 'tenant_analytics_ai_settings'
 };
 
 /**
@@ -281,6 +282,40 @@ export const getStorageStats = () => {
   } catch (error) {
     console.error('Error getting storage stats:', error);
     return null;
+  }
+};
+
+/**
+ * Get AI settings
+ */
+export const getAISettings = () => {
+  try {
+    const settings = localStorage.getItem(STORAGE_KEYS.AI_SETTINGS);
+    return settings ? JSON.parse(settings) : {
+      enabled: false,
+      provider: null, // 'openai' | 'claude' | null
+      apiKey: null
+    };
+  } catch (error) {
+    console.error('Error reading AI settings:', error);
+    return {
+      enabled: false,
+      provider: null,
+      apiKey: null
+    };
+  }
+};
+
+/**
+ * Save AI settings
+ */
+export const saveAISettings = (settings) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.AI_SETTINGS, JSON.stringify(settings));
+    return true;
+  } catch (error) {
+    console.error('Error saving AI settings:', error);
+    return false;
   }
 };
 

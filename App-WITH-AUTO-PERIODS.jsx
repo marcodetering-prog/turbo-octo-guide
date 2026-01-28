@@ -4,7 +4,10 @@ import Papa from 'papaparse';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import * as storage from './localStorage';
 import { suggestPeriodGrouping, generatePeriodsForType, groupDataByPeriods } from './autoPeriodDetection';
-import BackupRestore from './BackupRestore';
+import AISettingsPanel from './AISettingsPanel';
+import * as chunkingService from './chunkingService';
+import * as aiAnalyticsService from './aiAnalyticsService';
+import TrendComparisonView from './TrendComparisonView';
 
 export default function MultiClientAnalytics() {
   const [clients, setClients] = useState([]);
@@ -23,6 +26,12 @@ export default function MultiClientAnalytics() {
   const [periodSuggestion, setPeriodSuggestion] = useState(null);
   const [selectedGrouping, setSelectedGrouping] = useState(null);
   const [showPeriodPreview, setShowPeriodPreview] = useState(false);
+
+  // AI settings state
+  const [aiSettings, setAISettings] = useState(storage.getAISettings());
+
+  // Trend comparison state
+  const [showTrendAnalysis, setShowTrendAnalysis] = useState(false);
 
   const COLORS = {
     insideHours: '#10b981',
@@ -73,14 +82,23 @@ export default function MultiClientAnalytics() {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        setUploadedCSV(results.data);
-        
-        // Get auto-period suggestion
-        const suggestion = suggestPeriodGrouping(results.data);
-        setPeriodSuggestion(suggestion);
-        setSelectedGrouping(suggestion.recommendation);
-        
-        setLoading(false);
+        // Check if file needs chunking
+        const needsChunk = chunkingService.needsChunking(results.data);
+
+        if (needsChunk && aiSettings.enabled && aiSettings.provider && aiSettings.apiKey) {
+          // Process with AI-enhanced chunking
+          processLargeFileWithChunking(results.data, file.name);
+        } else {
+          // Normal flow
+          setUploadedCSV(results.data);
+
+          // Get auto-period suggestion
+          const suggestion = suggestPeriodGrouping(results.data);
+          setPeriodSuggestion(suggestion);
+          setSelectedGrouping(suggestion.recommendation);
+
+          setLoading(false);
+        }
       },
       error: (error) => {
         console.error('Error parsing CSV:', error);
@@ -88,6 +106,89 @@ export default function MultiClientAnalytics() {
         setLoading(false);
       }
     });
+  };
+
+  const processLargeFileWithChunking = async (csvData, fileName) => {
+    try {
+      if (!selectedClient) {
+        alert('Please select a client first');
+        setLoading(false);
+        return;
+      }
+
+      // Chunk CSV into 7-day segments
+      const chunks = chunkingService.chunkCSVByDays(csvData, 7);
+
+      // Show chunking info
+      const dateRange = chunkingService.getDateRangeFromCSV(csvData);
+      console.log(`Processing ${chunks.length} chunks from ${dateRange.minDate} to ${dateRange.maxDate}`);
+
+      // Process each chunk
+      const chunkResults = [];
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+
+        // Parse chunk data
+        const { inquiries, validationIssues } = parseCSVData(chunk.data);
+
+        // Calculate base analytics
+        const baseAnalytics = calculateAnalytics(inquiries, validationIssues);
+
+        // Get AI insights
+        let enhancedAnalytics = baseAnalytics;
+        try {
+          const aiInsights = await aiAnalyticsService.analyzeChunkWithAI(
+            baseAnalytics,
+            aiSettings.provider,
+            aiSettings.apiKey
+          );
+          enhancedAnalytics = aiAnalyticsService.enhanceAnalyticsWithAI(
+            baseAnalytics,
+            aiInsights
+          );
+        } catch (aiError) {
+          console.warn(`AI analysis failed for chunk ${i + 1}:`, aiError.message);
+          // Continue with base analytics if AI fails
+        }
+
+        chunkResults.push({
+          startDate: chunk.startDate,
+          endDate: chunk.endDate,
+          analytics: enhancedAnalytics,
+          inquiryCount: inquiries.length
+        });
+      }
+
+      // Aggregate results
+      const aggregatedAnalytics = chunkingService.aggregateChunkAnalytics(chunkResults);
+
+      // Create single period with aggregated data
+      storage.addPeriodToClient(selectedClient.id, {
+        name: `${dateRange.minDate} to ${dateRange.maxDate} (AI-Analyzed, ${chunks.length} chunks)`,
+        startDate: dateRange.minDate,
+        endDate: dateRange.maxDate,
+        fileName: fileName,
+        analytics: aggregatedAnalytics,
+        inquiryCount: csvData.length,
+        isAIAnalyzed: true,
+        chunkCount: chunks.length,
+        aiProvider: aiSettings.provider
+      });
+
+      // Reload and clear upload
+      loadClients();
+      setUploadedCSV(null);
+      setUploadedFileName('');
+      setPeriodSuggestion(null);
+      setShowUpload(false);
+      setLoading(false);
+
+      alert(`✓ Successfully processed ${chunks.length} chunks with AI analysis!`);
+    } catch (error) {
+      console.error('Error processing large file:', error);
+      alert(`Error processing file: ${error.message}`);
+      setLoading(false);
+    }
   };
 
   const createPeriodsAutomatically = () => {
@@ -574,7 +675,13 @@ export default function MultiClientAnalytics() {
             </div>
           </div>
 
-          <BackupRestore onRestoreComplete={loadClients} />
+          <AISettingsPanel
+            settings={aiSettings}
+            onSettingsChange={(newSettings) => {
+              setAISettings(newSettings);
+              storage.saveAISettings(newSettings);
+            }}
+          />
 
           {showAddClient && (
             <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
@@ -683,24 +790,13 @@ export default function MultiClientAnalytics() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                {selectedClient.periods.length >= 2 && !showComparison && (
+                {selectedClient.periods.length >= 2 && !showTrendAnalysis && (
                   <button
-                    onClick={() => setShowComparison(true)}
+                    onClick={() => setShowTrendAnalysis(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                   >
                     <TrendingUp className="w-5 h-5" />
-                    Compare Periods
-                  </button>
-                )}
-                {showComparison && (
-                  <button
-                    onClick={() => {
-                      setShowComparison(false);
-                      setComparisonPeriods([]);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                  >
-                    Cancel Comparison
+                    Trend Analysis
                   </button>
                 )}
                 <button
@@ -830,31 +926,182 @@ export default function MultiClientAnalytics() {
             </div>
           )}
 
-          {/* Rest of the component continues... */}
-          {/* (Periods list, comparison view, etc - keeping existing code) */}
-          
-          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-            <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              {selectedClient.periods.length === 0 ? 'No Data Yet' : `${selectedClient.periods.length} Period${selectedClient.periods.length !== 1 ? 's' : ''}`}
-            </h3>
-            <p className="text-gray-600 mb-4">
-              {selectedClient.periods.length === 0 
-                ? 'Upload your first CSV file with auto-period detection' 
-                : 'Upload more data or view existing periods'}
-            </p>
-            <button
-              onClick={() => setShowUpload(true)}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Upload Data
-            </button>
-          </div>
+          {/* Trend Analysis View */}
+          {showTrendAnalysis ? (
+            <TrendComparisonView
+              client={selectedClient}
+              periods={selectedClient.periods}
+              onBack={() => setShowTrendAnalysis(false)}
+              aiSettings={aiSettings}
+            />
+          ) : null}
+
+          {/* Periods List */}
+          {!showTrendAnalysis && (selectedClient.periods.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+              <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">No Data Yet</h3>
+              <p className="text-gray-600 mb-4">Upload your first CSV file with auto-period detection</p>
+              <button
+                onClick={() => setShowUpload(true)}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Upload Data
+              </button>
+            </div>
+          ) : (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                {selectedClient.periods.length} Period{selectedClient.periods.length !== 1 ? 's' : ''}
+              </h2>
+              <div className="space-y-6">
+                {selectedClient.periods.map((period) => (
+                  <div key={period.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
+                    {/* Period Header */}
+                    <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="text-xl font-bold">{period.name}</h3>
+                          <p className="text-blue-100 text-sm mt-1">
+                            {period.startDate} to {period.endDate} • {period.inquiryCount} inquiries
+                          </p>
+                          {period.isAIAnalyzed && (
+                            <div className="flex items-center gap-2 mt-2">
+                              <Zap size={16} className="text-yellow-300" />
+                              <span className="text-sm font-semibold">AI-Analyzed ({period.chunkCount} chunks)</span>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (confirm('Delete this period? This cannot be undone.')) {
+                              const updatedPeriods = selectedClient.periods.filter(p => p.id !== period.id);
+                              storage.updateClient(selectedClient.id, { periods: updatedPeriods });
+                              loadClients();
+                            }
+                          }}
+                          className="p-2 hover:bg-blue-700 rounded-lg transition"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* AI Insights Section */}
+                    {period.isAIAnalyzed && period.analytics?.aiInsights && (
+                      <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 border-b border-purple-200">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Zap className="text-purple-600" size={20} />
+                          <h4 className="text-lg font-bold text-gray-800">AI-Powered Insights</h4>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Trends */}
+                          {period.analytics.aiInsights.trends && period.analytics.aiInsights.trends.length > 0 && (
+                            <div className="bg-white rounded-lg p-4 border border-blue-200">
+                              <h5 className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                <TrendingUp size={16} className="text-blue-600" />
+                                Trends
+                              </h5>
+                              <ul className="space-y-1 text-sm text-gray-600">
+                                {period.analytics.aiInsights.trends.map((trend, i) => (
+                                  <li key={i} className="flex gap-2">
+                                    <span className="text-blue-600 font-bold">•</span>
+                                    <span>{trend}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Anomalies */}
+                          {period.analytics.aiInsights.anomalies && period.analytics.aiInsights.anomalies.length > 0 && (
+                            <div className="bg-white rounded-lg p-4 border border-yellow-200">
+                              <h5 className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                <AlertCircle size={16} className="text-yellow-600" />
+                                Anomalies
+                              </h5>
+                              <ul className="space-y-1 text-sm text-gray-600">
+                                {period.analytics.aiInsights.anomalies.map((anomaly, i) => (
+                                  <li key={i} className="flex gap-2">
+                                    <span className="text-yellow-600 font-bold">•</span>
+                                    <span>{anomaly}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Insights */}
+                          {period.analytics.aiInsights.insights && period.analytics.aiInsights.insights.length > 0 && (
+                            <div className="bg-white rounded-lg p-4 border border-green-200">
+                              <h5 className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                <CheckCircle size={16} className="text-green-600" />
+                                Insights
+                              </h5>
+                              <ul className="space-y-1 text-sm text-gray-600">
+                                {period.analytics.aiInsights.insights.map((insight, i) => (
+                                  <li key={i} className="flex gap-2">
+                                    <span className="text-green-600 font-bold">•</span>
+                                    <span>{insight}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Recommendations */}
+                          {period.analytics.aiInsights.recommendations && period.analytics.aiInsights.recommendations.length > 0 && (
+                            <div className="bg-white rounded-lg p-4 border border-red-200">
+                              <h5 className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                <BarChart3 size={16} className="text-red-600" />
+                                Recommendations
+                              </h5>
+                              <ul className="space-y-1 text-sm text-gray-600">
+                                {period.analytics.aiInsights.recommendations.map((rec, i) => (
+                                  <li key={i} className="flex gap-2">
+                                    <span className="text-red-600 font-bold">•</span>
+                                    <span>{rec}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Period Analytics Summary */}
+                    <div className="p-6">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600">Total Inquiries</p>
+                          <p className="text-2xl font-bold text-blue-600">{period.analytics?.totalInquiries || 0}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Success Rate</p>
+                          <p className="text-2xl font-bold text-green-600">{period.analytics?.successRate || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Avg Response Time</p>
+                          <p className="text-2xl font-bold text-purple-600">{period.analytics?.avgResponseTime || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Data Quality</p>
+                          <p className="text-2xl font-bold text-orange-600">{period.analytics?.dataQualityScore || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
-  // Period detail view would go here (keeping existing code)
-  return <div>Period Detail View</div>;
+  // This shouldn't be reached
+  return null;
 }

@@ -264,8 +264,8 @@ export const groupDataByPeriods = (csvData, periods) => {
 export const suggestPeriodGrouping = (csvData) => {
   if (!csvData || csvData.length === 0) {
     return {
-      recommendation: 'custom',
-      reason: 'No data to analyze',
+      recommendation: 'monthly',
+      reason: 'Calendar months for consistent trend tracking',
       options: []
     };
   }
@@ -275,8 +275,8 @@ export const suggestPeriodGrouping = (csvData) => {
 
   if (inquiries.length === 0) {
     return {
-      recommendation: 'custom',
-      reason: 'No valid inquiries found',
+      recommendation: 'monthly',
+      reason: 'Calendar months for consistent trend tracking',
       options: []
     };
   }
@@ -285,54 +285,22 @@ export const suggestPeriodGrouping = (csvData) => {
   const minDate = timestamps[0];
   const maxDate = timestamps[timestamps.length - 1];
   const daysDiff = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24));
+  const monthlyPeriods = generateMonthlyPeriods(minDate, maxDate);
 
-  let recommendation = {
+  // Always recommend monthly periods for consistent trend analysis
+  const recommendation = {
     recommendation: 'monthly',
-    reason: 'Standard monthly tracking',
+    reason: `${inquiries.length} inquiries from ${monthlyPeriods.length} calendar months - optimized for trend tracking and comparison`,
     daySpan: daysDiff,
     inquiryCount: inquiries.length,
-    options: []
-  };
-
-  if (daysDiff <= 7) {
-    recommendation.recommendation = 'daily';
-    recommendation.reason = `${inquiries.length} inquiries over ${daysDiff} days - daily tracking recommended`;
-    recommendation.options = [
-      { value: 'daily', label: 'Daily (best fit)', periods: generateDailyPeriods(minDate, maxDate).length },
-      { value: 'weekly', label: 'Weekly', periods: 1 },
-      { value: 'custom', label: 'Custom dates', periods: '?' }
-    ];
-  } else if (daysDiff <= 31) {
-    recommendation.recommendation = 'weekly';
-    recommendation.reason = `${inquiries.length} inquiries over ${daysDiff} days - weekly tracking recommended`;
-    recommendation.options = [
-      { value: 'weekly', label: 'Weekly (best fit)', periods: generateWeeklyPeriods(minDate, maxDate).length },
-      { value: 'daily', label: 'Daily', periods: generateDailyPeriods(minDate, maxDate).length },
-      { value: 'monthly', label: 'Monthly', periods: 1 },
-      { value: 'custom', label: 'Custom dates', periods: '?' }
-    ];
-  } else if (daysDiff <= 365) {
-    recommendation.recommendation = 'monthly';
-    recommendation.reason = `${inquiries.length} inquiries over ${daysDiff} days - monthly tracking recommended`;
-    recommendation.options = [
-      { value: 'monthly', label: 'Monthly (best fit)', periods: generateMonthlyPeriods(minDate, maxDate).length },
-      { value: 'weekly', label: 'Weekly', periods: generateWeeklyPeriods(minDate, maxDate).length },
-      { value: 'quarterly', label: 'Quarterly', periods: generateQuarterlyPeriods(minDate, maxDate).length },
-      { value: 'custom', label: 'Custom dates', periods: '?' }
-    ];
-  } else {
-    recommendation.recommendation = 'quarterly';
-    recommendation.reason = `${inquiries.length} inquiries over ${daysDiff} days - quarterly tracking recommended`;
-    recommendation.options = [
-      { value: 'quarterly', label: 'Quarterly (best fit)', periods: generateQuarterlyPeriods(minDate, maxDate).length },
-      { value: 'monthly', label: 'Monthly', periods: generateMonthlyPeriods(minDate, maxDate).length },
-      { value: 'custom', label: 'Custom dates', periods: '?' }
-    ];
-  }
-
-  recommendation.dateRange = {
-    start: minDate.toISOString().split('T')[0],
-    end: maxDate.toISOString().split('T')[0]
+    dateRange: {
+      start: minDate.toISOString().split('T')[0],
+      end: maxDate.toISOString().split('T')[0]
+    },
+    monthCount: monthlyPeriods.length,
+    options: [
+      { value: 'monthly', label: 'Monthly (Calendar Months)', periods: monthlyPeriods.length }
+    ]
   };
 
   return recommendation;
