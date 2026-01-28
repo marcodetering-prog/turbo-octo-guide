@@ -88,10 +88,13 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
   const processRegularFile = (csvData, fileName) => {
     // Get auto-period suggestion
     const suggestion = suggestPeriodGrouping(csvData);
-    const selectedGrouping = suggestion.recommendation;
+    const groupingType = suggestion.recommendation;
+
+    // Generate actual period objects from grouping type
+    const periods = generatePeriodsForType(csvData, groupingType);
 
     // Group data by selected period type
-    const groupedData = groupDataByPeriods(csvData, selectedGrouping);
+    const groupedData = groupDataByPeriods(csvData, periods);
 
     // Calculate analytics for each period
     const newPeriods = Object.values(groupedData).map((periodData) => {
