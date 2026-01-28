@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Upload, Clock, TrendingUp, AlertCircle, BarChart3, Loader2, CheckCircle, XCircle, DollarSign, MessageSquare, Timer, ThumbsUp, ThumbsDown, Users, Plus, Calendar, ArrowLeft, History, Trash2, Zap } from 'lucide-react';
 import Papa from 'papaparse';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import * as storage from '../../../../../Downloads/files/netlify-deployment/src/localStorage';
-import { suggestPeriodGrouping, generatePeriodsForType, groupDataByPeriods } from '../../../../../Downloads/files/netlify-deployment/src/autoPeriodDetection';
+import * as storage from './localStorage';
+import { suggestPeriodGrouping, generatePeriodsForType, groupDataByPeriods } from './autoPeriodDetection';
+import BackupRestore from './BackupRestore';
 
 export default function MultiClientAnalytics() {
   const [clients, setClients] = useState([]);
@@ -572,6 +573,8 @@ export default function MultiClientAnalytics() {
               </button>
             </div>
           </div>
+
+          <BackupRestore onRestoreComplete={loadClients} />
 
           {showAddClient && (
             <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
