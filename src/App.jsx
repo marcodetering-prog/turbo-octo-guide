@@ -3,15 +3,13 @@ import * as storage from './services/storage';
 import { ClientManagement, ClientDetail } from './features/clientManagement';
 import KPIDashboard from './features/analytics/components/KPIDashboard';
 import TrendComparisonView from './features/trendAnalysis/components/TrendComparisonView';
-import AISettingsPanel from './features/aiIntegration/components/AISettingsPanel';
-import FEATURE_FLAGS from './constants/featureFlags';
 
 export default function App() {
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [showTrendAnalysis, setShowTrendAnalysis] = useState(false);
-  const [aiSettings, setAISettings] = useState(storage.getAISettings());
+  const [aiSettings] = useState(storage.getAISettings());
 
   // Load clients on mount
   useEffect(() => {
@@ -119,25 +117,12 @@ export default function App() {
 
   // 4. Client Detail View - Periods Overview
   return (
-    <>
-      {FEATURE_FLAGS.AI_SETTINGS_PANEL && (
-        <div className="absolute top-6 right-6 z-50">
-          <AISettingsPanel
-            settings={aiSettings}
-            onSettingsChange={(newSettings) => {
-              setAISettings(newSettings);
-              storage.saveAISettings(newSettings);
-            }}
-          />
-        </div>
-      )}
-      <ClientDetail
-        client={selectedClient}
-        onBack={handleBackToClients}
-        onUpdateClient={handleUpdateClient}
-        onSelectPeriod={handleSelectPeriod}
-        aiSettings={aiSettings}
-      />
-    </>
+    <ClientDetail
+      client={selectedClient}
+      onBack={handleBackToClients}
+      onUpdateClient={handleUpdateClient}
+      onSelectPeriod={handleSelectPeriod}
+      aiSettings={aiSettings}
+    />
   );
 }

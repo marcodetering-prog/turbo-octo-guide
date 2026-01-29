@@ -4,13 +4,16 @@ import Papa from 'papaparse';
 import { suggestPeriodGrouping, generatePeriodsForType, groupDataByPeriods } from '../../../services/autoPeriodDetection';
 import * as chunkingService from '../../../features/aiIntegration/services/chunkingService';
 import * as aiAnalyticsService from '../../../features/aiIntegration/services/aiAnalyticsService';
+import AISettingsPanel from '../../aiIntegration/components/AISettingsPanel';
+import * as storage from '../../../services/storage';
 import FEATURE_FLAGS from '../../../constants/featureFlags';
 
-export default function ClientDetail({ client, onBack, onUpdateClient, onSelectPeriod, aiSettings }) {
+export default function ClientDetail({ client, onBack, onUpdateClient, onSelectPeriod, aiSettings: initialAISettings }) {
   const [loading, setLoading] = useState(false);
   const [uploadedCSV, setUploadedCSV] = useState(null);
   const [showUpload, setShowUpload] = useState(false);
   const [error, setError] = useState(null);
+  const [aiSettings, setAISettings] = useState(initialAISettings || storage.getAISettings());
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -228,13 +231,24 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
               </p>
             </div>
           </div>
-          <button
-            onClick={() => setShowUpload(!showUpload)}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-          >
-            <Upload className="w-5 h-5" />
-            Upload CSV
-          </button>
+          <div className="flex items-center gap-4">
+            {FEATURE_FLAGS.AI_SETTINGS_PANEL && (
+              <AISettingsPanel
+                settings={aiSettings}
+                onSettingsChange={(newSettings) => {
+                  setAISettings(newSettings);
+                  storage.saveAISettings(newSettings);
+                }}
+              />
+            )}
+            <button
+              onClick={() => setShowUpload(!showUpload)}
+              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+            >
+              <Upload className="w-5 h-5" />
+              Upload CSV
+            </button>
+          </div>
         </div>
 
         {/* Upload Section */}
