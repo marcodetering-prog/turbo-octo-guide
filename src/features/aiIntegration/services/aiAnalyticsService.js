@@ -14,55 +14,80 @@ const buildAnalyticsPrompt = (analytics) => {
     .map(d => `${d.name}: ${d.value} (${d.percentage})`)
     .join('\n');
 
-  return `Analyze this period of tenant inquiry data deeply and provide both KPI evaluations and insights.
+  return `You are analyzing TENANT INQUIRY DATA for property management. This data represents inquiries from tenants about deficiencies, maintenance, and issues with rental properties.
 
-**Raw Metrics Provided:**
+**RAW METRICS PROVIDED:**
 - Total Inquiries: ${analytics.totalInquiries}
-- Success Rate: ${analytics.successRate}
+- Inquiries Inside Working Hours (08:00-17:00): ${analytics.insideWorkingHours || 0} (${analytics.insidePercentage})
+- Inquiries Outside Working Hours (17:00-08:00): ${analytics.outsideWorkingHours || 0} (${analytics.outsidePercentage})
+- Successful/Resolved Reports: ${analytics.successfulReports || 0}
+- Failed/Unresolved Reports: ${analytics.failedReports || 0}
 - Avg Response Time: ${analytics.avgResponseTime}
 - Avg Resolution Time: ${analytics.avgResolutionTime} min
-- Data Quality Score: ${analytics.dataQualityScore}
-- Working Hours: ${analytics.insidePercentage} | After Hours: ${analytics.outsidePercentage}
-- Inside Working Hours Count: ${analytics.insideWorkingHours || 0}
-- Outside Working Hours Count: ${analytics.outsideWorkingHours || 0}
-- Successful Reports: ${analytics.successfulReports || 0}
-- Failed Reports: ${analytics.failedReports || 0}
-- Satisfied Users: ${analytics.satisfied || 0}
-- Neutral Users: ${analytics.neutral || 0}
-- Frustrated Users: ${analytics.frustrated || 0}
 - Avg Conversation Length: ${analytics.avgConversationLength} messages
-- Total Data Quality Issues: ${analytics.totalIssues || 0}
+- Data Quality Score: ${analytics.dataQualityScore}
+- Total Issues Found: ${analytics.totalIssues || 0}
+- Satisfied Tenants: ${analytics.satisfied || 0}
+- Neutral Tenants: ${analytics.neutral || 0}
+- Frustrated Tenants: ${analytics.frustrated || 0}
 
-**Top Deficiencies:**
+**TOP DEFICIENCY TYPES:**
 ${topDeficiencies || 'None'}
 
-**Task:** Analyze the data deeply and return ONLY valid JSON with these exact fields:
-1. "successRate": Refined success rate percentage (0-100, as string with % like "85%")
-2. "avgResponseTime": Evaluated average response time (format like "45s")
-3. "avgResolutionTime": Evaluated average resolution time in minutes (format like "120 min")
-4. "dataQualityScore": Evaluated data quality percentage (0-100, as string with % like "90%")
-5. "satisfactionRate": Calculated satisfaction percentage (0-100, as string with % like "75%")
-6. "frustrationRate": Calculated frustration percentage (0-100, as string with % like "15%")
-7. "trends": Array of 2-3 key trends observed in the data
-8. "anomalies": Array of 2-3 unusual patterns or outliers
-9. "insights": Array of 2-3 actionable insights based on the analysis
-10. "recommendations": Array of 2-3 specific improvements to implement
+**CONTEXT GUIDE (For Accuracy):**
+- Success Rate should reflect the percentage of resolved inquiries (successful / (successful + failed) * 100)
+- Response Time is measured in seconds from inquiry to first response
+- Resolution Time is in minutes from inquiry to final resolution
+- Data Quality Score is 0-100% based on data completeness and accuracy
+- Working Hours Success: Typically higher success rates occur during working hours
+- After-Hours Impact: Inquiries outside 08:00-17:00 often have longer resolution times
+- Satisfaction Rate: Calculate based on successful resolutions and response quality
 
-Example format:
+**YOUR TASK:**
+Analyze the tenant inquiry data deeply. Correct any anomalies in the provided metrics and return ONLY valid JSON with these exact fields (use 95% accuracy):
+
+1. "successRate": Success rate percentage (formula: successful / (successful + failed) * 100) - format as "XX%"
+2. "avgResponseTime": Average response time - format as "XXs" (seconds)
+3. "avgResolutionTime": Average resolution time - format as "XX min"
+4. "dataQualityScore": Data quality percentage - format as "XX%"
+5. "satisfactionRate": Satisfaction percentage based on successful resolutions - format as "XX%"
+6. "frustrationRate": Frustration percentage from unresolved issues - format as "XX%"
+7. "trends": Array of 2-3 KEY TRENDS (e.g., "X% of inquiries during working hours", "Average resolution time increased by X%")
+8. "anomalies": Array of 2-3 NOTABLE PATTERNS (e.g., "After-hours inquiries have X% lower success rate", "Peak inquiry type: Major Deficiencies")
+9. "insights": Array of 2-3 ACTIONABLE INSIGHTS from the data patterns
+10. "recommendations": Array of 2-3 SPECIFIC IMPROVEMENTS (prioritized by impact)
+
+**EXAMPLE (Based on actual tenant data):**
 {
-  "successRate": "82%",
-  "avgResponseTime": "35s",
-  "avgResolutionTime": "95 min",
-  "dataQualityScore": "88%",
-  "satisfactionRate": "78%",
+  "successRate": "88%",
+  "avgResponseTime": "120s",
+  "avgResolutionTime": "240 min",
+  "dataQualityScore": "92%",
+  "satisfactionRate": "82%",
   "frustrationRate": "12%",
-  "trends": ["Inquiry volume increased by 15%", "Peak hours shifted to afternoon"],
-  "anomalies": ["Unusual spike in failed reports on specific day", "Response time variance is high"],
-  "insights": ["High frustration correlates with response time delays", "After-hours inquiries have lower success rates"],
-  "recommendations": ["Implement auto-response for after-hours inquiries", "Allocate more resources during peak hours", "Improve data validation process"]
+  "trends": [
+    "54% of inquiries occur during working hours (08:00-17:00)",
+    "Major deficiencies account for 58% of all inquiries",
+    "Automated routing accuracy is 71%, requiring 29% manual intervention"
+  ],
+  "anomalies": [
+    "After-hours inquiries show 22% longer resolution time",
+    "78% of deficiency reports are made within working hours",
+    "German inquiries represent 69% of all communications"
+  ],
+  "insights": [
+    "Deficiency types are concentrated: Major (56) and Minor (7) deficiencies represent majority of workload",
+    "Potential savings of CHF2,087 per period through automated processing",
+    "Time efficiency: Major deficiencies average 57 minutes, with CHF49.50 hourly cost"
+  ],
+  "recommendations": [
+    "Implement 24/7 automated response system to reduce after-hours resolution time gap",
+    "Improve routing accuracy beyond current 71% to reduce manual intervention workload",
+    "Focus resources on Major Deficiency handling which represents 58% of inquiry volume"
+  ]
 }
 
-Respond with ONLY valid JSON, no other text.`;
+Respond with ONLY valid JSON, no other text. Ensure 95% accuracy to actual data patterns.`;
 };
 
 /**
