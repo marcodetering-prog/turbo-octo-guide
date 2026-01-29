@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, ArrowLeft, AlertCircle, Loader2, Calendar, TrendingUp, BarChart3, CheckCircle } from 'lucide-react';
+import { Upload, ArrowLeft, AlertCircle, Loader2, Calendar, TrendingUp, BarChart3 } from 'lucide-react';
 import Papa from 'papaparse';
 import { suggestPeriodGrouping, generatePeriodsForType, groupDataByPeriods } from '../../../services/autoPeriodDetection';
 import * as chunkingService from '../../../features/aiIntegration/services/chunkingService';
@@ -8,6 +8,7 @@ import AISettingsPanel from '../../aiIntegration/components/AISettingsPanel';
 import * as storage from '../../../services/storage';
 import * as kpiValidation from '../../../services/kpiValidation';
 import ProgressBar from '../../../components/ProgressBar';
+import KPIAccuracyReport from '../../../components/KPIAccuracyReport';
 import FEATURE_FLAGS from '../../../constants/featureFlags';
 import uiStrings from '../../../config/uiStrings.json';
 
@@ -558,70 +559,13 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
           </div>
         )}
 
-        {/* KPI Validation Results */}
+        {/* KPI Accuracy Report */}
         {validationResults && (
-          <div className={`rounded-lg shadow-lg p-6 mb-8 ${validationResults.passedValidation ? 'bg-green-50 border-2 border-green-200' : 'bg-yellow-50 border-2 border-yellow-200'}`}>
-            <div className="flex items-center gap-3 mb-4">
-              {validationResults.passedValidation ? (
-                <>
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                  <h3 className="text-lg font-bold text-green-800">KPI Validation: PASSED ✓</h3>
-                </>
-              ) : (
-                <>
-                  <AlertCircle className="w-6 h-6 text-yellow-600" />
-                  <h3 className="text-lg font-bold text-yellow-800">KPI Validation: NEEDS REFINEMENT</h3>
-                </>
-              )}
-              <span className="ml-auto text-2xl font-bold" style={{ color: validationResults.overallAccuracy >= 95 ? '#16a34a' : '#ca8a04' }}>
-                {validationResults.overallAccuracy}% Accurate
-              </span>
-            </div>
-
-            {/* Individual KPI Scores */}
-            <div className="mb-4">
-              <h4 className="font-semibold text-gray-800 mb-3">Individual KPI Scores:</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {Object.entries(validationResults.kpiScores).map(([key, score]) => (
-                  <div key={key} className="bg-white p-3 rounded border-l-4" style={{ borderColor: score.accuracy >= 95 ? '#16a34a' : '#ca8a04' }}>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium text-gray-700 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                        <p className="text-sm text-gray-600">Expected: {score.baselineValue}</p>
-                        <p className="text-sm text-gray-600">Got: {score.aiValue}</p>
-                      </div>
-                      <span className="font-bold" style={{ color: score.accuracy >= 95 ? '#16a34a' : '#ca8a04' }}>
-                        {score.accuracy}%
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Warnings */}
-            {validationResults.warnings.length > 0 && (
-              <div className="mb-4">
-                <h4 className="font-semibold text-yellow-800 mb-2">⚠ Warnings:</h4>
-                <ul className="list-disc list-inside space-y-1">
-                  {validationResults.warnings.map((warning, idx) => (
-                    <li key={idx} className="text-yellow-800 text-sm">{warning}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Suggestions */}
-            {validationResults.suggestions.length > 0 && (
-              <div>
-                <h4 className="font-semibold text-gray-800 mb-2">💡 Suggestions for Improvement:</h4>
-                <ul className="list-disc list-inside space-y-1">
-                  {validationResults.suggestions.map((suggestion, idx) => (
-                    <li key={idx} className="text-gray-700 text-sm">{suggestion}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+          <div className="mb-8">
+            <KPIAccuracyReport
+              validationResults={validationResults}
+              baselineKPIs={kpiValidation.getBaselineKPIs()}
+            />
           </div>
         )}
 
