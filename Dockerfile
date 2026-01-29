@@ -11,7 +11,12 @@ RUN npm ci
 # Copy project files
 COPY . .
 
-# Build the application
+# Build the application with environment variables
+# Railway passes these as build-time arguments
+ARG VITE_OPENAI_API_KEY
+ARG VITE_CLAUDE_API_KEY
+ENV VITE_OPENAI_API_KEY=$VITE_OPENAI_API_KEY
+ENV VITE_CLAUDE_API_KEY=$VITE_CLAUDE_API_KEY
 RUN npm run build
 
 # Expose port

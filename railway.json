@@ -1,7 +1,11 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "dockerfile"
+    "builder": "dockerfile",
+    "buildArgs": [
+      "VITE_OPENAI_API_KEY",
+      "VITE_CLAUDE_API_KEY"
+    ]
   },
   "deploy": {
     "numReplicas": 1,
