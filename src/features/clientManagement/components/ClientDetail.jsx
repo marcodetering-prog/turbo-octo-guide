@@ -272,22 +272,24 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
       return conversation.some((msg) => msg.MessageType === '3' || msg.MessageType === 3);
     });
 
-    // Calculate validation issues
+    // Calculate validation issues - match aggregateChunkAnalytics format (arrays, not numbers)
     const validationIssues = {
-      missingData: 0,
-      lowQuality: 0,
-      issues: []
+      missingDeficiencyType: [],
+      missingCostEstimate: [],
+      missingReportStatus: [],
+      lowConfidenceScore: [],
+      highFrustration: [],
+      longConversations: [],
+      shortConversations: []
     };
 
     inquiries.forEach((conversation) => {
       conversation.forEach((msg) => {
         if (!msg.TimeSent || !msg.ConversationId) {
-          validationIssues.missingData++;
+          validationIssues.missingReportStatus.push(`Conversation ${msg.ConversationId}: Missing timestamp`);
         }
       });
     });
-
-    validationIssues.lowQuality = Math.round((validationIssues.missingData / allMessages.length) * 100);
 
     return { inquiries, allMessages, validationIssues };
   };
@@ -401,8 +403,13 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
       ? Math.round((successCount / (successCount + failCount)) * 100)
       : 0;
 
-    // Data quality score (inverse of issue percentage)
-    const qualityScore = Math.max(0, 100 - (validationIssues.lowQuality || 0));
+    // Data quality score - count total issues from validation issues arrays
+    const totalIssuesCount = Object.values(validationIssues).reduce((sum, issues) => {
+      return sum + (Array.isArray(issues) ? issues.length : 0);
+    }, 0);
+    const qualityScore = allMessages.length > 0
+      ? Math.max(0, 100 - Math.round((totalIssuesCount / allMessages.length) * 100))
+      : 100;
 
     return {
       totalInquiries: inquiries.length,
@@ -422,7 +429,7 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
       satisfied: 0,
       frustrated: 0,
       neutral: inquiries.length,
-      totalIssues: validationIssues.missingData || 0,
+      totalIssues: totalIssuesCount,
       validationIssues: validationIssues,
       deficiencyData: [],
       costData: [],
