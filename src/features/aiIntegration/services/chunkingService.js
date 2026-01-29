@@ -325,3 +325,40 @@ const calculateWeightedAverage = (items) => {
   const weightedSum = items.reduce((sum, item) => sum + ((item.value || 0) * (item.weight || 0)), 0);
   return weightedSum / totalWeight;
 };
+
+/**
+ * Group chunk results by month
+ * @param {Array} chunkResults - Array of {startDate, endDate, analytics, inquiryCount}
+ * @returns {Array} Array of monthly groups: [{monthYear, startDate, endDate, chunks: []}]
+ */
+export const groupChunksByMonth = (chunkResults) => {
+  if (!chunkResults || chunkResults.length === 0) {
+    return [];
+  }
+
+  const monthMap = {};
+
+  for (const chunk of chunkResults) {
+    const startDate = new Date(chunk.startDate);
+    const monthYear = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`;
+
+    if (!monthMap[monthYear]) {
+      monthMap[monthYear] = {
+        monthYear,
+        startDate: chunk.startDate,
+        endDate: chunk.endDate,
+        chunks: []
+      };
+    }
+
+    // Update endDate if this chunk extends further
+    if (chunk.endDate > monthMap[monthYear].endDate) {
+      monthMap[monthYear].endDate = chunk.endDate;
+    }
+
+    monthMap[monthYear].chunks.push(chunk);
+  }
+
+  // Sort by month and return as array
+  return Object.values(monthMap).sort((a, b) => a.monthYear.localeCompare(b.monthYear));
+};

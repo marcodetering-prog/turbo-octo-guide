@@ -6,6 +6,7 @@ import * as chunkingService from '../../../features/aiIntegration/services/chunk
 import * as aiAnalyticsService from '../../../features/aiIntegration/services/aiAnalyticsService';
 import AISettingsPanel from '../../aiIntegration/components/AISettingsPanel';
 import * as storage from '../../../services/storage';
+import ProgressBar from '../../../components/ProgressBar';
 import FEATURE_FLAGS from '../../../constants/featureFlags';
 
 export default function ClientDetail({ client, onBack, onUpdateClient, onSelectPeriod, aiSettings: initialAISettings }) {
@@ -14,6 +15,8 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
   const [showUpload, setShowUpload] = useState(false);
   const [error, setError] = useState(null);
   const [aiSettings, setAISettings] = useState(initialAISettings || storage.getAISettings());
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('');
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -89,17 +92,24 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
   };
 
   const processRegularFile = (csvData, fileName) => {
-    // Get auto-period suggestion
+    // Step 1: Analyze period grouping
+    setProgressMessage('Analyzing data structure...');
+    setProgress(20);
+
     const suggestion = suggestPeriodGrouping(csvData);
     const groupingType = suggestion.recommendation;
 
-    // Generate actual period objects from grouping type
-    const periods = generatePeriodsForType(csvData, groupingType);
+    // Step 2: Generate periods
+    setProgressMessage('Generating periods...');
+    setProgress(40);
 
-    // Group data by selected period type
+    const periods = generatePeriodsForType(csvData, groupingType);
     const groupedData = groupDataByPeriods(csvData, periods);
 
-    // Calculate analytics for each period
+    // Step 3: Calculate analytics
+    setProgressMessage('Calculating analytics...');
+    setProgress(60);
+
     const newPeriods = Object.values(groupedData).map((periodData) => {
       const { inquiries, validationIssues } = parseCSVData(periodData.data);
       const analytics = calculateAnalytics(inquiries, validationIssues);
@@ -116,25 +126,51 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
       };
     });
 
-    // Update client
+    // Step 4: Save results
+    setProgressMessage('Saving results...');
+    setProgress(90);
+
     const updatedClient = {
       ...client,
       periods: [...(client.periods || []), ...newPeriods]
     };
 
     onUpdateClient(updatedClient);
-    setShowUpload(false);
-    setLoading(false);
-    setError(null);
+
+    setProgress(100);
+    setProgressMessage('Upload complete!');
+    setTimeout(() => {
+      setShowUpload(false);
+      setLoading(false);
+      setError(null);
+      setProgress(0);
+      setProgressMessage('');
+    }, 800);
   };
 
   const processLargeFileWithChunking = async (csvData, fileName) => {
     try {
+      setProgressMessage('Chunking data by date...');
+      setProgress(15);
+
       const chunks = chunkingService.chunkCSVByDays(csvData, 7);
       const chunkResults = [];
+      const totalChunks = chunks.length;
 
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
+
+        // Update progress message with chunk number
+        setProgressMessage(
+          aiSettings?.provider && aiSettings?.apiKey
+            ? `Processing chunk ${i + 1} of ${totalChunks} with AI...`
+            : `Processing chunk ${i + 1} of ${totalChunks}...`
+        );
+
+        // Calculate progress: start at 15%, end at 85% during chunking
+        const chunkProgress = 15 + (i / totalChunks) * 70;
+        setProgress(chunkProgress);
+
         const { inquiries, validationIssues } = parseCSVData(chunk.data);
         const baseAnalytics = calculateAnalytics(inquiries, validationIssues);
 
@@ -160,32 +196,56 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
         });
       }
 
-      const aggregatedAnalytics = chunkingService.aggregateChunkAnalytics(chunkResults);
-      const dateRange = chunkingService.getDateRangeFromCSV(csvData);
+      // Step: Aggregate results by month
+      setProgressMessage('Aggregating results by month...');
+      setProgress(88);
 
-      const newPeriod = {
-        id: `period-${Date.now()}`,
-        name: `${dateRange.minDate} - ${dateRange.maxDate} (AI-Analyzed)`,
-        startDate: dateRange.minDate,
-        endDate: dateRange.maxDate,
-        fileName: fileName,
-        analytics: aggregatedAnalytics,
-        inquiryCount: csvData.length,
-        isAIAnalyzed: true,
-        chunkCount: chunks.length
-      };
+      const monthlyGroups = chunkingService.groupChunksByMonth(chunkResults);
+      const newPeriods = monthlyGroups.map((group) => {
+        const monthlyAnalytics = chunkingService.aggregateChunkAnalytics(group.chunks);
+        const monthlyInquiryCount = group.chunks.reduce((sum, chunk) => sum + chunk.inquiryCount, 0);
+
+        // Format month name
+        const [year, month] = group.monthYear.split('-');
+        const monthName = new Date(year, parseInt(month) - 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+
+        return {
+          id: `period-${Date.now()}-${group.monthYear}`,
+          name: monthName,
+          startDate: group.startDate,
+          endDate: group.endDate,
+          fileName: fileName,
+          analytics: monthlyAnalytics,
+          inquiryCount: monthlyInquiryCount,
+          isAIAnalyzed: true,
+          chunkCount: group.chunks.length
+        };
+      });
+
+      // Step: Save results
+      setProgressMessage('Saving results...');
+      setProgress(95);
 
       const updatedClient = {
         ...client,
-        periods: [...(client.periods || []), newPeriod]
+        periods: [...(client.periods || []), ...newPeriods]
       };
 
       onUpdateClient(updatedClient);
-      setShowUpload(false);
-      setLoading(false);
+
+      setProgress(100);
+      setProgressMessage('Upload complete!');
+      setTimeout(() => {
+        setShowUpload(false);
+        setLoading(false);
+        setProgress(0);
+        setProgressMessage('');
+      }, 800);
     } catch (err) {
       setError(`Error processing large file: ${err.message}`);
       setLoading(false);
+      setProgress(0);
+      setProgressMessage('');
     }
   };
 
@@ -261,8 +321,20 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
                 <p className="text-red-700">{error}</p>
               </div>
             )}
+            {loading && progress > 0 && (
+              <div className="mb-6">
+                <ProgressBar
+                  progress={progress}
+                  message={progressMessage}
+                  isComplete={progress === 100}
+                  variant={progress === 100 ? 'success' : 'default'}
+                />
+              </div>
+            )}
             <div className="flex gap-3">
-              <label className="flex-1 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
+              <label className={`flex-1 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                loading ? 'border-gray-300 bg-gray-50' : 'border-gray-300 hover:border-blue-500'
+              }`}>
                 <input
                   type="file"
                   accept=".csv"
