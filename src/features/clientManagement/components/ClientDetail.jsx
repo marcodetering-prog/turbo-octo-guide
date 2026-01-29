@@ -8,6 +8,7 @@ import AISettingsPanel from '../../aiIntegration/components/AISettingsPanel';
 import * as storage from '../../../services/storage';
 import ProgressBar from '../../../components/ProgressBar';
 import FEATURE_FLAGS from '../../../constants/featureFlags';
+import uiStrings from '../../../config/uiStrings.json';
 
 export default function ClientDetail({ client, onBack, onUpdateClient, onSelectPeriod, aiSettings: initialAISettings }) {
   const [loading, setLoading] = useState(false);
@@ -33,7 +34,7 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
           // Check for duplicates
           const isDuplicate = checkForDuplicate(results.data);
           if (isDuplicate) {
-            setError('This data appears to already be in your client records.');
+            setError(uiStrings.clientDetail.uploadSection.uploadError);
             setLoading(false);
             return;
           }
@@ -93,21 +94,21 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
 
   const processRegularFile = (csvData, fileName) => {
     // Step 1: Analyze period grouping
-    setProgressMessage('Analyzing data structure...');
+    setProgressMessage(uiStrings.clientDetail.progress.analyzingData);
     setProgress(20);
 
     const suggestion = suggestPeriodGrouping(csvData);
     const groupingType = suggestion.recommendation;
 
     // Step 2: Generate periods
-    setProgressMessage('Generating periods...');
+    setProgressMessage(uiStrings.clientDetail.progress.generatingPeriods);
     setProgress(40);
 
     const periods = generatePeriodsForType(csvData, groupingType);
     const groupedData = groupDataByPeriods(csvData, periods);
 
     // Step 3: Calculate analytics
-    setProgressMessage('Calculating analytics...');
+    setProgressMessage(uiStrings.clientDetail.progress.calculatingAnalytics);
     setProgress(60);
 
     const newPeriods = Object.values(groupedData).map((periodData) => {
@@ -127,7 +128,7 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
     });
 
     // Step 4: Save results
-    setProgressMessage('Saving results...');
+    setProgressMessage(uiStrings.clientDetail.progress.savingResults);
     setProgress(90);
 
     const updatedClient = {
@@ -138,7 +139,7 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
     onUpdateClient(updatedClient);
 
     setProgress(100);
-    setProgressMessage('Upload complete!');
+    setProgressMessage(uiStrings.clientDetail.progress.uploadComplete);
     setTimeout(() => {
       setShowUpload(false);
       setLoading(false);
@@ -150,7 +151,7 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
 
   const processLargeFileWithChunking = async (csvData, fileName) => {
     try {
-      setProgressMessage('Chunking data by date...');
+      setProgressMessage(uiStrings.clientDetail.progress.chunkingData);
       setProgress(15);
 
       const chunks = chunkingService.chunkCSVByDays(csvData, 7);
@@ -161,11 +162,13 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
         const chunk = chunks[i];
 
         // Update progress message with chunk number
-        setProgressMessage(
-          aiSettings?.provider && aiSettings?.apiKey
-            ? `Processing chunk ${i + 1} of ${totalChunks} with AI...`
-            : `Processing chunk ${i + 1} of ${totalChunks}...`
-        );
+        const progressTemplate = aiSettings?.provider && aiSettings?.apiKey
+          ? uiStrings.clientDetail.progress.processingDocument
+          : uiStrings.clientDetail.progress.processingDocumentNoAI;
+        const progressMessage = progressTemplate
+          .replace('{current}', i + 1)
+          .replace('{total}', totalChunks);
+        setProgressMessage(progressMessage);
 
         // Calculate progress: start at 15%, end at 85% during chunking
         const chunkProgress = 15 + (i / totalChunks) * 70;
@@ -197,7 +200,7 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
       }
 
       // Step: Aggregate results by month
-      setProgressMessage('Aggregating results by month...');
+      setProgressMessage(uiStrings.clientDetail.progress.aggregatingResults);
       setProgress(88);
 
       const monthlyGroups = chunkingService.groupChunksByMonth(chunkResults);
@@ -223,7 +226,7 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
       });
 
       // Step: Save results
-      setProgressMessage('Saving results...');
+      setProgressMessage(uiStrings.clientDetail.progress.savingResults);
       setProgress(95);
 
       const updatedClient = {
@@ -234,7 +237,7 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
       onUpdateClient(updatedClient);
 
       setProgress(100);
-      setProgressMessage('Upload complete!');
+      setProgressMessage(uiStrings.clientDetail.progress.uploadComplete);
       setTimeout(() => {
         setShowUpload(false);
         setLoading(false);
@@ -306,7 +309,7 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
               className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
             >
               <Upload className="w-5 h-5" />
-              Upload CSV
+              {uiStrings.common.uploadCSV}
             </button>
           </div>
         </div>
@@ -314,7 +317,7 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
         {/* Upload Section */}
         {showUpload && (
           <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Upload CSV File</h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-4">{uiStrings.clientDetail.uploadSection.title}</h2>
             {error && (
               <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
                 <AlertCircle className="text-red-600 mt-0.5 flex-shrink-0" size={20} />
@@ -346,13 +349,13 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
                   {loading ? (
                     <>
                       <Loader2 className="w-6 h-6 text-blue-600 mx-auto mb-2 animate-spin" />
-                      <p className="text-blue-600 font-semibold">Processing...</p>
+                      <p className="text-blue-600 font-semibold">{uiStrings.clientDetail.uploadSection.processing}</p>
                     </>
                   ) : (
                     <>
                       <Upload className="w-6 h-6 text-gray-400 mx-auto mb-2" />
-                      <p className="text-gray-700 font-semibold">Click to upload CSV</p>
-                      <p className="text-sm text-gray-500">or drag and drop</p>
+                      <p className="text-gray-700 font-semibold">{uiStrings.clientDetail.uploadSection.clickToUpload}</p>
+                      <p className="text-sm text-gray-500">{uiStrings.clientDetail.uploadSection.dragAndDrop}</p>
                     </>
                   )}
                 </div>

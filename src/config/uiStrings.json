@@ -1,0 +1,34 @@
+{
+  "common": {
+    "uploadCSV": "Upload CSV",
+    "viewDetails": "View Details"
+  },
+  "clientDetail": {
+    "header": {
+      "period": "period",
+      "periods": "periods"
+    },
+    "uploadSection": {
+      "title": "Upload CSV File",
+      "uploadError": "This data appears to already be in your client records.",
+      "clickToUpload": "Click to upload CSV",
+      "dragAndDrop": "or drag and drop",
+      "processing": "Processing..."
+    },
+    "progress": {
+      "readingCSV": "Reading CSV file...",
+      "analyzingData": "Analyzing data structure...",
+      "generatingPeriods": "Generating periods...",
+      "calculatingAnalytics": "Calculating analytics...",
+      "processingDocument": "Processing Document {current} of {total} with AI...",
+      "processingDocumentNoAI": "Processing Document {current} of {total}...",
+      "chunkingData": "Chunking data by date...",
+      "aggregatingResults": "Aggregating results by month...",
+      "savingResults": "Saving results...",
+      "uploadComplete": "Upload complete!"
+    }
+  },
+  "progressBar": {
+    "percentageLabel": "%"
+  }
+}
