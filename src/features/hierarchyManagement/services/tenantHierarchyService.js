@@ -109,6 +109,38 @@ const extractEmail = (messages) => {
 };
 
 /**
+ * Extract phone number from conversation messages
+ * @param {Array} messages - Messages in conversation
+ * @returns {String} Phone number or null
+ */
+const extractPhoneFromMessages = (messages) => {
+  // Pattern for Swiss phone numbers (flexible format)
+  // Matches: 0764936161, 076 493 6161, 0041764936161, +41764936161, etc.
+  const phonePattern = /(?:\+41|0041|0)?[\s\-.]?(?:\(0\)[\s\-.]?)?[1-9][\d\s\-.\(\)]{7,12}\d/g;
+
+  for (const msg of messages) {
+    if (!msg.Content) continue;
+    const content = msg.Content.toString();
+    const matches = content.match(phonePattern);
+
+    if (matches) {
+      for (const match of matches) {
+        // Clean up the phone number - extract digits only
+        const digits = match.replace(/\D/g, '');
+        // Check if it's long enough to be a phone number (at least 9 digits)
+        if (digits.length >= 9) {
+          // Normalize to Swiss 0-format
+          const normalized = digits.startsWith('41') ? '0' + digits.substring(2) : digits;
+          return normalized;
+        }
+      }
+    }
+  }
+
+  return null;
+};
+
+/**
  * Group inquiries by phone number (tenant identifier)
  * @param {Array} inquiries - Array of conversations
  * @returns {Object} {phoneNumber: [{conversationId, messages, ...}]}
@@ -120,8 +152,33 @@ export const groupByPhone = (inquiries) => {
     const firstMsg = conversation[0];
     if (!firstMsg) return;
 
-    // Extract phone number from CSV column
-    const phone = firstMsg.reporterContactPhoneNumber || firstMsg.PhoneNumber || 'unknown';
+    // Try multiple strategies to extract phone number
+    let phone = null;
+
+    // Strategy 1: Check CSV columns (multiple possible column names)
+    if (firstMsg.reporterContactPhoneNumber) {
+      phone = firstMsg.reporterContactPhoneNumber;
+    } else if (firstMsg.PhoneNumber) {
+      phone = firstMsg.PhoneNumber;
+    } else if (firstMsg.phone) {
+      phone = firstMsg.phone;
+    } else if (firstMsg.Phone) {
+      phone = firstMsg.Phone;
+    } else if (firstMsg['Reporter Contact Phone Number']) {
+      phone = firstMsg['Reporter Contact Phone Number'];
+    } else {
+      // Strategy 2: Extract phone from messages
+      phone = extractPhoneFromMessages(conversation);
+    }
+
+    // Fallback if no phone found
+    if (!phone) {
+      // Use ConversationId as unique identifier
+      phone = firstMsg.ConversationId || 'unknown';
+    }
+
+    // Normalize phone number
+    phone = String(phone).trim();
 
     if (!phoneMap[phone]) {
       phoneMap[phone] = [];
