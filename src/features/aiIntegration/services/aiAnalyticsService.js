@@ -22,7 +22,7 @@ const normalizeAIKPIs = (result) => {
     avgResolutionTime: normalizeValue(result.avgResolutionTime, '120 min'),
     dataQualityScore: normalizeValue(result.dataQualityScore, '75%'),
     satisfactionRate: normalizeValue(result.satisfactionRate, '50%'),
-    frustrationRate: normalizeValue(result.frustrationRate, '20%')
+    frustrationRate: normalizeValue(result.frustrationRate, '20%'),
   };
 };
 
@@ -35,7 +35,7 @@ const normalizeAIKPIs = (result) => {
 const buildAnalyticsPrompt = (analytics, chunkMetadata = null) => {
   const topDeficiencies = (analytics.deficiencyData || [])
     .slice(0, 5)
-    .map(d => `${d.name}: ${d.value} (${d.percentage})`)
+    .map((d) => `${d.name}: ${d.value} (${d.percentage})`)
     .join('\n');
 
   // Build chunk context if available
@@ -153,23 +153,24 @@ export const analyzeChunkWithOpenAI = async (analytics, apiKey) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: 'gpt-4-turbo',
         messages: [
           {
             role: 'system',
-            content: 'You are an expert analytics specialist analyzing tenant inquiry KPIs. Provide insights in valid JSON format.'
+            content:
+              'You are an expert analytics specialist analyzing tenant inquiry KPIs. Provide insights in valid JSON format.',
           },
           {
             role: 'user',
-            content: buildAnalyticsPrompt(analytics)
-          }
+            content: buildAnalyticsPrompt(analytics),
+          },
         ],
         temperature: 0.3,
-        max_tokens: 1024
-      })
+        max_tokens: 1024,
+      }),
     });
 
     if (!response.ok) {
@@ -210,7 +211,7 @@ export const analyzeChunkWithOpenAI = async (analytics, apiKey) => {
       anomalies: Array.isArray(result.anomalies) ? result.anomalies : [],
       insights: Array.isArray(result.insights) ? result.insights : [],
       recommendations: Array.isArray(result.recommendations) ? result.recommendations : [],
-      provider: 'OpenAI'
+      provider: 'OpenAI',
     };
   } catch (error) {
     console.error('OpenAI Analysis Error:', error);
@@ -231,7 +232,7 @@ export const analyzeChunkWithClaude = async (analytics, apiKey) => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
         model: 'claude-3-5-sonnet-20241022',
@@ -239,11 +240,11 @@ export const analyzeChunkWithClaude = async (analytics, apiKey) => {
         messages: [
           {
             role: 'user',
-            content: buildAnalyticsPrompt(analytics)
-          }
+            content: buildAnalyticsPrompt(analytics),
+          },
         ],
-        temperature: 0.3
-      })
+        temperature: 0.3,
+      }),
     });
 
     if (!response.ok) {
@@ -284,7 +285,7 @@ export const analyzeChunkWithClaude = async (analytics, apiKey) => {
       anomalies: Array.isArray(result.anomalies) ? result.anomalies : [],
       insights: Array.isArray(result.insights) ? result.insights : [],
       recommendations: Array.isArray(result.recommendations) ? result.recommendations : [],
-      provider: 'Claude'
+      provider: 'Claude',
     };
   } catch (error) {
     console.error('Claude Analysis Error:', error);
@@ -331,8 +332,8 @@ export const enhanceAnalyticsWithAI = (baseAnalytics, aiAnalysis) => {
       anomalies: Array.isArray(aiAnalysis.anomalies) ? aiAnalysis.anomalies : [],
       insights: Array.isArray(aiAnalysis.insights) ? aiAnalysis.insights : [],
       recommendations: Array.isArray(aiAnalysis.recommendations) ? aiAnalysis.recommendations : [],
-      provider: aiAnalysis.provider || 'Unknown'
-    }
+      provider: aiAnalysis.provider || 'Unknown',
+    },
   };
 };
 
@@ -356,7 +357,7 @@ export const testAPIConnection = async (provider, apiKey) => {
       satisfied: 7,
       neutral: 2,
       frustrated: 1,
-      avgConversationLength: '5'
+      avgConversationLength: '5',
     };
 
     await analyzeChunkWithAI(testAnalytics, provider, apiKey);

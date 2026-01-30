@@ -29,7 +29,9 @@ const extractTenantIdentifier = (messages) => {
     if (msg.Content) {
       const addressMatch = msg.Content.match(addressPattern);
       if (addressMatch) {
-        const address = (addressMatch[1] + '-' + addressMatch[2]).toLowerCase().replace(/\s+/g, '-');
+        const address = (addressMatch[1] + '-' + addressMatch[2])
+          .toLowerCase()
+          .replace(/\s+/g, '-');
         return `property-${address}`;
       }
     }
@@ -55,7 +57,7 @@ export const groupDataByTenant = (csvData) => {
   const conversationMap = {};
 
   // First, group by conversation
-  csvData.forEach(row => {
+  csvData.forEach((row) => {
     if (row.ConversationId) {
       if (!conversationMap[row.ConversationId]) {
         conversationMap[row.ConversationId] = [];
@@ -110,7 +112,7 @@ export const getDateRangeFromCSV = (csvData) => {
     maxDate: maxDate.toISOString().split('T')[0],
     daySpan,
     minDateObj: minDate,
-    maxDateObj: maxDate
+    maxDateObj: maxDate,
   };
 };
 
@@ -136,14 +138,16 @@ export const chunkCSVByDays = (csvData, daysPerChunk = 1) => {
   if (!dateRange || dateRange.daySpan <= daysPerChunk) {
     // No chunking needed
     const metadata = generateChunkMetadata(csvData);
-    return [{
-      data: csvData,
-      startDate: dateRange?.minDate || null,
-      endDate: dateRange?.maxDate || null,
-      inquiryCount: csvData.length,
-      metadata: metadata,
-      isFullPeriod: true
-    }];
+    return [
+      {
+        data: csvData,
+        startDate: dateRange?.minDate || null,
+        endDate: dateRange?.maxDate || null,
+        inquiryCount: csvData.length,
+        metadata: metadata,
+        isFullPeriod: true,
+      },
+    ];
   }
 
   const chunks = [];
@@ -156,7 +160,7 @@ export const chunkCSVByDays = (csvData, daysPerChunk = 1) => {
     currentChunkEnd.setDate(currentChunkEnd.getDate() + daysPerChunk);
 
     // Filter CSV rows that fall within this chunk's date range
-    const chunkData = csvData.filter(row => {
+    const chunkData = csvData.filter((row) => {
       if (!row.TimeSent) return false;
       const rowDate = new Date(row.TimeSent);
       return rowDate >= currentChunkStart && rowDate < currentChunkEnd;
@@ -171,7 +175,7 @@ export const chunkCSVByDays = (csvData, daysPerChunk = 1) => {
         inquiryCount: chunkData.length,
         metadata: metadata,
         chunkIndex: chunks.length,
-        totalChunks: Math.ceil(dateRange.daySpan / daysPerChunk)
+        totalChunks: Math.ceil(dateRange.daySpan / daysPerChunk),
       });
       previousChunkData = chunkData;
     }
@@ -180,14 +184,18 @@ export const chunkCSVByDays = (csvData, daysPerChunk = 1) => {
     currentChunkStart = currentChunkEnd;
   }
 
-  return chunks.length > 0 ? chunks : [{
-    data: csvData,
-    startDate: dateRange.minDate,
-    endDate: dateRange.maxDate,
-    inquiryCount: csvData.length,
-    metadata: generateChunkMetadata(csvData),
-    isFullPeriod: true
-  }];
+  return chunks.length > 0
+    ? chunks
+    : [
+        {
+          data: csvData,
+          startDate: dateRange.minDate,
+          endDate: dateRange.maxDate,
+          inquiryCount: csvData.length,
+          metadata: generateChunkMetadata(csvData),
+          isFullPeriod: true,
+        },
+      ];
 };
 
 /**
@@ -204,13 +212,13 @@ const generateChunkMetadata = (chunkData, previousChunkData = null) => {
       dataQuality: '0%',
       conversationMetrics: {},
       trend: 'unknown',
-      anomalies: []
+      anomalies: [],
     };
   }
 
   // Group by conversation to analyze patterns
   const conversationMap = {};
-  chunkData.forEach(row => {
+  chunkData.forEach((row) => {
     if (row.ConversationId) {
       if (!conversationMap[row.ConversationId]) {
         conversationMap[row.ConversationId] = [];
@@ -223,7 +231,7 @@ const generateChunkMetadata = (chunkData, previousChunkData = null) => {
 
   // Find peak hour
   const hourCounts = new Array(24).fill(0);
-  chunkData.forEach(row => {
+  chunkData.forEach((row) => {
     if (row.TimeSent) {
       const hour = new Date(row.TimeSent).getHours();
       hourCounts[hour]++;
@@ -234,7 +242,7 @@ const generateChunkMetadata = (chunkData, previousChunkData = null) => {
 
   // Calculate data quality
   let qualityIssues = 0;
-  chunkData.forEach(row => {
+  chunkData.forEach((row) => {
     if (!row.TimeSent || !row.ConversationId || !row.MessageType) {
       qualityIssues++;
     }
@@ -247,17 +255,19 @@ const generateChunkMetadata = (chunkData, previousChunkData = null) => {
   let longConversations = 0;
   let resolvedConversations = 0;
 
-  conversations.forEach(conv => {
+  conversations.forEach((conv) => {
     totalConversationLength += conv.length;
     if (conv.length <= 2) shortConversations++;
     if (conv.length > 10) longConversations++;
-    if (conv.some(msg => msg.Status === 'resolved' || msg.Status === 'closed')) {
+    if (conv.some((msg) => msg.Status === 'resolved' || msg.Status === 'closed')) {
       resolvedConversations++;
     }
   });
 
-  const avgConvLength = conversations.length > 0 ? (totalConversationLength / conversations.length).toFixed(1) : 0;
-  const successRate = conversations.length > 0 ? Math.round((resolvedConversations / conversations.length) * 100) : 0;
+  const avgConvLength =
+    conversations.length > 0 ? (totalConversationLength / conversations.length).toFixed(1) : 0;
+  const successRate =
+    conversations.length > 0 ? Math.round((resolvedConversations / conversations.length) * 100) : 0;
 
   // Determine busy period classification
   let busyPeriod = 'Moderate activity';
@@ -267,9 +277,8 @@ const generateChunkMetadata = (chunkData, previousChunkData = null) => {
   // Detect trend compared to previous chunk
   let trend = 'stable';
   if (previousChunkData && previousChunkData.length > 0) {
-    const previousAvgConvLength = Object.keys(conversationMap).length > 0
-      ? totalConversationLength / conversations.length
-      : 0;
+    const previousAvgConvLength =
+      Object.keys(conversationMap).length > 0 ? totalConversationLength / conversations.length : 0;
     if (chunkData.length > previousChunkData.length * 1.2) trend = 'increasing';
     if (chunkData.length < previousChunkData.length * 0.8) trend = 'decreasing';
   }
@@ -301,16 +310,18 @@ const generateChunkMetadata = (chunkData, previousChunkData = null) => {
       shortConversations: shortConversations,
       longConversations: longConversations,
       resolvedCount: resolvedConversations,
-      successRate: `${successRate}%`
+      successRate: `${successRate}%`,
     },
     trend: trend,
     anomalies: anomalies,
     messageCount: chunkData.length,
-    hourlyDistribution: hourCounts.map((count, hour) => ({
-      hour,
-      count,
-      percentage: ((count / chunkData.length) * 100).toFixed(1)
-    })).filter(h => h.count > 0)
+    hourlyDistribution: hourCounts
+      .map((count, hour) => ({
+        hour,
+        count,
+        percentage: ((count / chunkData.length) * 100).toFixed(1),
+      }))
+      .filter((h) => h.count > 0),
   };
 };
 
@@ -350,7 +361,7 @@ export const aggregateChunkAnalytics = (chunkResults) => {
     hourlyData: new Array(24).fill(null).map((_, i) => ({
       hour: `${i}:00`,
       count: 0,
-      isWorkingHours: i >= 9 && i < 17
+      isWorkingHours: i >= 9 && i < 17,
     })),
     validationIssues: {
       missingDeficiencyType: [],
@@ -359,8 +370,8 @@ export const aggregateChunkAnalytics = (chunkResults) => {
       lowConfidenceScore: [],
       highFrustration: [],
       longConversations: [],
-      shortConversations: []
-    }
+      shortConversations: [],
+    },
   };
 
   // Sum count metrics
@@ -378,18 +389,21 @@ export const aggregateChunkAnalytics = (chunkResults) => {
   }
 
   // Recalculate percentages
-  aggregated.insidePercentage = aggregated.totalInquiries > 0
-    ? ((aggregated.insideWorkingHours / aggregated.totalInquiries) * 100).toFixed(1) + '%'
-    : '0%';
-  aggregated.outsidePercentage = aggregated.totalInquiries > 0
-    ? ((aggregated.outsideWorkingHours / aggregated.totalInquiries) * 100).toFixed(1) + '%'
-    : '0%';
+  aggregated.insidePercentage =
+    aggregated.totalInquiries > 0
+      ? ((aggregated.insideWorkingHours / aggregated.totalInquiries) * 100).toFixed(1) + '%'
+      : '0%';
+  aggregated.outsidePercentage =
+    aggregated.totalInquiries > 0
+      ? ((aggregated.outsideWorkingHours / aggregated.totalInquiries) * 100).toFixed(1) + '%'
+      : '0%';
 
   // Calculate success rate
   const totalReports = aggregated.successfulReports + aggregated.failedReports;
-  aggregated.successRate = totalReports > 0
-    ? ((aggregated.successfulReports / totalReports) * 100).toFixed(1) + '%'
-    : 'N/A';
+  aggregated.successRate =
+    totalReports > 0
+      ? ((aggregated.successfulReports / totalReports) * 100).toFixed(1) + '%'
+      : 'N/A';
 
   // Aggregate deficiency data
   const deficiencyMap = {};
@@ -404,13 +418,16 @@ export const aggregateChunkAnalytics = (chunkResults) => {
     }
   }
 
-  aggregated.deficiencyData = Object.entries(deficiencyMap).map(([name, value]) => ({
-    name,
-    value,
-    percentage: aggregated.totalInquiries > 0
-      ? ((value / aggregated.totalInquiries) * 100).toFixed(1) + '%'
-      : '0%'
-  })).sort((a, b) => b.value - a.value);
+  aggregated.deficiencyData = Object.entries(deficiencyMap)
+    .map(([name, value]) => ({
+      name,
+      value,
+      percentage:
+        aggregated.totalInquiries > 0
+          ? ((value / aggregated.totalInquiries) * 100).toFixed(1) + '%'
+          : '0%',
+    }))
+    .sort((a, b) => b.value - a.value);
 
   // Aggregate cost data
   const costMap = {};
@@ -422,7 +439,7 @@ export const aggregateChunkAnalytics = (chunkResults) => {
             name: item.name,
             totalCost: 0,
             count: 0,
-            costs: []
+            costs: [],
           };
         }
         costMap[item.name].count += parseInt(item.count) || 0;
@@ -432,13 +449,14 @@ export const aggregateChunkAnalytics = (chunkResults) => {
     }
   }
 
-  aggregated.costData = Object.values(costMap).map(item => ({
+  aggregated.costData = Object.values(costMap).map((item) => ({
     name: item.name,
     count: item.count,
     totalCost: item.totalCost.toFixed(2),
-    avgCost: item.count > 0
-      ? (item.costs.reduce((a, b) => a + b, 0) / item.costs.length).toFixed(2)
-      : '0.00'
+    avgCost:
+      item.count > 0
+        ? (item.costs.reduce((a, b) => a + b, 0) / item.costs.length).toFixed(2)
+        : '0.00',
   }));
 
   // Aggregate hourly data
@@ -457,7 +475,7 @@ export const aggregateChunkAnalytics = (chunkResults) => {
   aggregated.satisfactionData = [
     { name: 'Satisfied', value: aggregated.satisfied, color: '#10b981' },
     { name: 'Neutral', value: aggregated.neutral, color: '#f59e0b' },
-    { name: 'Frustrated', value: aggregated.frustrated, color: '#ef4444' }
+    { name: 'Frustrated', value: aggregated.frustrated, color: '#ef4444' },
   ];
 
   // Aggregate validation issues
@@ -465,10 +483,7 @@ export const aggregateChunkAnalytics = (chunkResults) => {
     if (chunk.analytics.validationIssues) {
       for (const [key, values] of Object.entries(chunk.analytics.validationIssues)) {
         if (Array.isArray(values)) {
-          aggregated.validationIssues[key] = [
-            ...aggregated.validationIssues[key],
-            ...values
-          ];
+          aggregated.validationIssues[key] = [...aggregated.validationIssues[key], ...values];
         }
       }
     }
@@ -476,44 +491,46 @@ export const aggregateChunkAnalytics = (chunkResults) => {
 
   // Calculate average metrics (weighted by inquiry count)
   aggregated.avgConversationLength = calculateWeightedAverage(
-    chunkResults.map(c => ({
+    chunkResults.map((c) => ({
       value: parseFloat(c.analytics.avgConversationLength) || 0,
-      weight: c.inquiryCount
+      weight: c.inquiryCount,
     }))
   ).toFixed(2);
 
-  aggregated.avgResponseTime = calculateWeightedAverage(
-    chunkResults.map(c => ({
-      value: c.analytics.avgResponseTime
-        ? parseFloat(c.analytics.avgResponseTime.match(/[\d.]+/)?.[0]) || 0
-        : 0,
-      weight: c.inquiryCount
-    }))
-  ).toFixed(2) + 's';
+  aggregated.avgResponseTime =
+    calculateWeightedAverage(
+      chunkResults.map((c) => ({
+        value: c.analytics.avgResponseTime
+          ? parseFloat(c.analytics.avgResponseTime.match(/[\d.]+/)?.[0]) || 0
+          : 0,
+        weight: c.inquiryCount,
+      }))
+    ).toFixed(2) + 's';
 
   aggregated.avgResolutionTime = calculateWeightedAverage(
-    chunkResults.map(c => ({
+    chunkResults.map((c) => ({
       value: parseFloat(c.analytics.avgResolutionTime) || 0,
-      weight: c.inquiryCount
+      weight: c.inquiryCount,
     }))
   ).toFixed(2);
 
-  aggregated.dataQualityScore = calculateWeightedAverage(
-    chunkResults.map(c => ({
-      value: parseFloat(c.analytics.dataQualityScore) || 0,
-      weight: c.inquiryCount
-    }))
-  ).toFixed(0) + '%';
+  aggregated.dataQualityScore =
+    calculateWeightedAverage(
+      chunkResults.map((c) => ({
+        value: parseFloat(c.analytics.dataQualityScore) || 0,
+        weight: c.inquiryCount,
+      }))
+    ).toFixed(0) + '%';
 
   // Chart data
   aggregated.timeWindowData = [
     { name: 'Working Hours', value: aggregated.insideWorkingHours },
-    { name: 'After Hours', value: aggregated.outsideWorkingHours }
+    { name: 'After Hours', value: aggregated.outsideWorkingHours },
   ];
 
   aggregated.successData = [
     { name: 'Successful', value: aggregated.successfulReports },
-    { name: 'Failed', value: aggregated.failedReports }
+    { name: 'Failed', value: aggregated.failedReports },
   ];
 
   return aggregated;
@@ -530,7 +547,7 @@ const calculateWeightedAverage = (items) => {
   const totalWeight = items.reduce((sum, item) => sum + (item.weight || 0), 0);
   if (totalWeight === 0) return 0;
 
-  const weightedSum = items.reduce((sum, item) => sum + ((item.value || 0) * (item.weight || 0)), 0);
+  const weightedSum = items.reduce((sum, item) => sum + (item.value || 0) * (item.weight || 0), 0);
   return weightedSum / totalWeight;
 };
 
@@ -557,7 +574,7 @@ export const chunkCSVByTenantThenTime = (csvData, daysPerChunk = 1) => {
       inquiryCount: tenantMessages.length,
       timeChunks: timeChunks,
       startDate: timeChunks[0]?.startDate,
-      endDate: timeChunks[timeChunks.length - 1]?.endDate
+      endDate: timeChunks[timeChunks.length - 1]?.endDate,
     });
   }
 
@@ -581,13 +598,13 @@ const generateTenantMetadata = (tenantId, tenantData) => {
       resolutionRate: '0%',
       engagementLevel: 'low',
       riskProfile: 'low',
-      recommendedPriority: 'low'
+      recommendedPriority: 'low',
     };
   }
 
   // Group by conversation
   const conversationMap = {};
-  tenantData.forEach(row => {
+  tenantData.forEach((row) => {
     if (row.ConversationId) {
       if (!conversationMap[row.ConversationId]) {
         conversationMap[row.ConversationId] = [];
@@ -602,7 +619,7 @@ const generateTenantMetadata = (tenantId, tenantData) => {
   // Extract issue types
   const issueTypes = new Set();
   const costEstimates = [];
-  tenantData.forEach(row => {
+  tenantData.forEach((row) => {
     if (row.Content && row.Content.includes('deficiencyType')) {
       try {
         const parsed = JSON.parse(row.Content);
@@ -623,7 +640,7 @@ const generateTenantMetadata = (tenantId, tenantData) => {
   let responseCount = 0;
   let resolvedCount = 0;
 
-  conversations.forEach(conv => {
+  conversations.forEach((conv) => {
     const sortedMsgs = conv.sort((a, b) => new Date(a.TimeSent) - new Date(b.TimeSent));
 
     // Calculate response time (first to second message)
@@ -636,15 +653,14 @@ const generateTenantMetadata = (tenantId, tenantData) => {
     }
 
     // Check if resolved
-    if (conv.some(msg => msg.Status === 'resolved' || msg.Status === 'closed')) {
+    if (conv.some((msg) => msg.Status === 'resolved' || msg.Status === 'closed')) {
       resolvedCount++;
     }
   });
 
   const avgResponseTime = responseCount > 0 ? Math.round(totalResponseTime / responseCount) : 0;
-  const resolutionRate = conversations.length > 0
-    ? Math.round((resolvedCount / conversations.length) * 100)
-    : 0;
+  const resolutionRate =
+    conversations.length > 0 ? Math.round((resolvedCount / conversations.length) * 100) : 0;
 
   // Determine engagement level
   let engagementLevel = 'low';
@@ -674,12 +690,15 @@ const generateTenantMetadata = (tenantId, tenantData) => {
     resolutionRate: `${resolutionRate}%`,
     resolvedCount: resolvedCount,
     unResolvedCount: conversations.length - resolvedCount,
-    totalCostEstimated: costEstimates.length > 0 ? `CHF ${costEstimates.reduce((a, b) => a + b, 0).toFixed(2)}` : 'N/A',
+    totalCostEstimated:
+      costEstimates.length > 0
+        ? `CHF ${costEstimates.reduce((a, b) => a + b, 0).toFixed(2)}`
+        : 'N/A',
     engagementLevel: engagementLevel,
     riskProfile: riskProfile,
     recommendedPriority: recommendedPriority,
     communicationStyle: determineCommStyle(conversations),
-    satisfactionIndicators: determineSatisfaction(conversations)
+    satisfactionIndicators: determineSatisfaction(conversations),
   };
 };
 
@@ -693,7 +712,7 @@ const determineCommStyle = (conversations) => {
   let shortConvs = 0;
   let longConvs = 0;
 
-  conversations.forEach(conv => {
+  conversations.forEach((conv) => {
     avgLength += conv.length;
     if (conv.length <= 2) shortConvs++;
     if (conv.length > 10) longConvs++;
@@ -705,7 +724,7 @@ const determineCommStyle = (conversations) => {
     averageConversationLength: avgLength.toFixed(1),
     isDetailOriented: avgLength > 6,
     isDirective: shortConvs > conversations.length * 0.4,
-    isEngaging: longConvs > conversations.length * 0.2
+    isEngaging: longConvs > conversations.length * 0.2,
   };
 };
 
@@ -719,14 +738,19 @@ const determineSatisfaction = (conversations) => {
   let urgentIssuesCount = 0;
   let escalationsCount = 0;
 
-  conversations.forEach(conv => {
-    if (conv.some(msg => msg.Status === 'resolved' || msg.Status === 'closed')) {
+  conversations.forEach((conv) => {
+    if (conv.some((msg) => msg.Status === 'resolved' || msg.Status === 'closed')) {
       resolvedCount++;
     }
-    if (conv.some(msg => msg.Content && (msg.Content.includes('Emergency') || msg.Content.includes('urgent')))) {
+    if (
+      conv.some(
+        (msg) =>
+          msg.Content && (msg.Content.includes('Emergency') || msg.Content.includes('urgent'))
+      )
+    ) {
       urgentIssuesCount++;
     }
-    if (conv.some(msg => msg.Content && msg.Content.includes('Hausverwaltung'))) {
+    if (conv.some((msg) => msg.Content && msg.Content.includes('Hausverwaltung'))) {
       escalationsCount++;
     }
   });
@@ -735,13 +759,14 @@ const determineSatisfaction = (conversations) => {
   let satisfaction = 'neutral';
 
   if (resolutionSuccess > 80 && escalationsCount === 0) satisfaction = 'satisfied';
-  if (resolutionSuccess < 50 || escalationsCount > conversations.length * 0.5) satisfaction = 'at-risk';
+  if (resolutionSuccess < 50 || escalationsCount > conversations.length * 0.5)
+    satisfaction = 'at-risk';
 
   return {
     estimatedSatisfaction: satisfaction,
     urgentIssuesReported: urgentIssuesCount,
     escalationsRequired: escalationsCount,
-    resolutionSuccess: resolutionSuccess.toFixed(0) + '%'
+    resolutionSuccess: resolutionSuccess.toFixed(0) + '%',
   };
 };
 
@@ -766,7 +791,7 @@ export const groupChunksByMonth = (chunkResults) => {
         monthYear,
         startDate: chunk.startDate,
         endDate: chunk.endDate,
-        chunks: []
+        chunks: [],
       };
     }
 

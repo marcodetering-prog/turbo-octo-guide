@@ -11,8 +11,14 @@ export default function App() {
   const [showTrendAnalysis, setShowTrendAnalysis] = useState(false);
   const [aiSettings] = useState(storage.getAISettings());
 
+  const loadClients = () => {
+    const loadedClients = storage.getClients();
+    setClients(loadedClients);
+  };
+
   // Load clients on mount
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadClients();
   }, []);
 
@@ -22,11 +28,6 @@ export default function App() {
       // Stay on client detail
     }
   }, [selectedClient]);
-
-  const loadClients = () => {
-    const loadedClients = storage.getClients();
-    setClients(loadedClients);
-  };
 
   const handleAddClient = (name) => {
     const newClient = storage.addClient(name);
@@ -53,7 +54,7 @@ export default function App() {
     storage.updateClient(updatedClient.id, { periods: updatedClient.periods });
     loadClients();
     // Refresh selected client
-    const freshClient = storage.getClients().find(c => c.id === updatedClient.id);
+    const freshClient = storage.getClients().find((c) => c.id === updatedClient.id);
     setSelectedClient(freshClient);
   };
 

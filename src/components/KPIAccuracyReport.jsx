@@ -1,32 +1,8 @@
 import React from 'react';
 import { AlertCircle, CheckCircle, TrendingUp } from 'lucide-react';
 
-export default function KPIAccuracyReport({ validationResults, baselineKPIs }) {
+export default function KPIAccuracyReport({ validationResults }) {
   if (!validationResults) return null;
-
-  /**
-   * Format a metric value for display
-   */
-  const formatValue = (value) => {
-    if (!value) return '0';
-    return value.toString();
-  };
-
-  /**
-   * Parse percentage for display
-   */
-  const parsePercentage = (percentStr) => {
-    if (!percentStr) return 0;
-    return parseFloat(percentStr.toString().replace('%', ''));
-  };
-
-  /**
-   * Parse time value
-   */
-  const parseTime = (timeStr) => {
-    if (!timeStr) return '0';
-    return timeStr.toString();
-  };
 
   /**
    * Determine color based on accuracy
@@ -54,7 +30,7 @@ export default function KPIAccuracyReport({ validationResults, baselineKPIs }) {
     'Response Metrics': ['avgResponseTime', 'avgResolutionTime'],
     'Quality Metrics': ['dataQualityScore', 'satisfactionRate', 'frustrationRate'],
     'Success Metrics': ['successRate'],
-    'Volume Metrics': ['totalInquiries']
+    'Volume Metrics': ['totalInquiries'],
   };
 
   return (
@@ -65,8 +41,10 @@ export default function KPIAccuracyReport({ validationResults, baselineKPIs }) {
           <TrendingUp className="w-8 h-8 text-blue-600" />
           <h2 className="text-3xl font-bold text-gray-800">KPI Accuracy Report</h2>
         </div>
-        <div className="flex items-center gap-3 bg-white rounded-lg p-6 shadow-lg border-2"
-             style={{ borderColor: getAccuracyColor(overallAccuracy) }}>
+        <div
+          className="flex items-center gap-3 bg-white rounded-lg p-6 shadow-lg border-2"
+          style={{ borderColor: getAccuracyColor(overallAccuracy) }}
+        >
           <div className="text-right">
             <p className="text-sm text-gray-600 font-medium">Overall Accuracy</p>
             <p className="text-4xl font-bold" style={{ color: getAccuracyColor(overallAccuracy) }}>
@@ -85,13 +63,11 @@ export default function KPIAccuracyReport({ validationResults, baselineKPIs }) {
       <div className="mb-8">
         {validationResults.passedValidation ? (
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-full font-semibold">
-            <CheckCircle size={18} />
-            ✓ PASSED VALIDATION (95%+)
+            <CheckCircle size={18} />✓ PASSED VALIDATION (95%+)
           </div>
         ) : (
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-800 rounded-full font-semibold">
-            <AlertCircle size={18} />
-            ⚠ NEEDS REFINEMENT (Below 95%)
+            <AlertCircle size={18} />⚠ NEEDS REFINEMENT (Below 95%)
           </div>
         )}
       </div>
@@ -100,7 +76,7 @@ export default function KPIAccuracyReport({ validationResults, baselineKPIs }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {Object.entries(kpiCategories).map(([categoryName, kpiKeys]) => {
           // Filter to only show KPIs that have scores
-          const categoryKPIs = kpiKeys.filter(key => scores[key]);
+          const categoryKPIs = kpiKeys.filter((key) => scores[key]);
 
           if (categoryKPIs.length === 0) return null;
 
@@ -124,7 +100,7 @@ export default function KPIAccuracyReport({ validationResults, baselineKPIs }) {
                       className="p-4 rounded border-l-4"
                       style={{
                         backgroundColor: getAccuracyBgColor(accuracy),
-                        borderColor: getAccuracyColor(accuracy)
+                        borderColor: getAccuracyColor(accuracy),
                       }}
                     >
                       {/* Metric Name */}
@@ -159,13 +135,11 @@ export default function KPIAccuracyReport({ validationResults, baselineKPIs }) {
                       {/* Status Badge */}
                       {isPass ? (
                         <div className="inline-flex items-center gap-1 text-green-700 text-sm font-semibold">
-                          <CheckCircle size={14} />
-                          ✓ PASS
+                          <CheckCircle size={14} />✓ PASS
                         </div>
                       ) : (
                         <div className="inline-flex items-center gap-1 text-yellow-700 text-sm font-semibold">
-                          <AlertCircle size={14} />
-                          ⚠ Needs refinement
+                          <AlertCircle size={14} />⚠ Needs refinement
                         </div>
                       )}
                     </div>
@@ -181,8 +155,7 @@ export default function KPIAccuracyReport({ validationResults, baselineKPIs }) {
       {validationResults.warnings && validationResults.warnings.length > 0 && (
         <div className="mt-8 bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6">
           <h3 className="text-lg font-bold text-yellow-900 mb-4 flex items-center gap-2">
-            <AlertCircle size={20} />
-            ⚠ Warnings - Low Accuracy Areas
+            <AlertCircle size={20} />⚠ Warnings - Low Accuracy Areas
           </h3>
           <ul className="space-y-2">
             {validationResults.warnings.map((warning, idx) => (

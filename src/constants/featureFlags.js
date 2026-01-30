@@ -62,7 +62,7 @@ export const setFeatureFlag = (featureName, enabled) => {
  * Reset all feature flags to default (remove from localStorage)
  */
 export const resetFeatureFlags = () => {
-  Object.keys(FEATURE_FLAGS).forEach(feature => {
+  Object.keys(FEATURE_FLAGS).forEach((feature) => {
     localStorage.removeItem(`feature_${feature}`);
   });
 };

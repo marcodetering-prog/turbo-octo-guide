@@ -5,7 +5,7 @@ export default function ProgressBar({
   progress = 0,
   message = '',
   isComplete = false,
-  variant = 'default'
+  variant = 'default',
 }) {
   return (
     <div className="w-full">
@@ -16,8 +16,8 @@ export default function ProgressBar({
             variant === 'success'
               ? 'bg-green-500'
               : variant === 'error'
-              ? 'bg-red-500'
-              : 'bg-blue-500'
+                ? 'bg-red-500'
+                : 'bg-blue-500'
           }`}
           style={{ width: `${Math.min(progress, 100)}%` }}
         />
@@ -27,13 +27,11 @@ export default function ProgressBar({
       <div className="flex items-center justify-between mt-2">
         <div className="flex items-center gap-2">
           {isComplete && <CheckCircle2 size={18} className="text-green-500 flex-shrink-0" />}
-          <p className={`text-sm font-medium ${
-            isComplete
-              ? 'text-green-600'
-              : variant === 'error'
-              ? 'text-red-600'
-              : 'text-gray-700'
-          }`}>
+          <p
+            className={`text-sm font-medium ${
+              isComplete ? 'text-green-600' : variant === 'error' ? 'text-red-600' : 'text-gray-700'
+            }`}
+          >
             {message}
           </p>
         </div>

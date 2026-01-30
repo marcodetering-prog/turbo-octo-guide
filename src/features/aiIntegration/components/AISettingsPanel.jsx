@@ -17,7 +17,7 @@ export default function AISettingsPanel({ settings, onSettingsChange }) {
     if (openaiKey || claudeKey) {
       setEnvApiKey({
         openai: !!openaiKey,
-        claude: !!claudeKey
+        claude: !!claudeKey,
       });
     }
   }, []);
@@ -25,14 +25,14 @@ export default function AISettingsPanel({ settings, onSettingsChange }) {
   const handleProviderChange = (provider) => {
     setTempSettings({
       ...tempSettings,
-      provider
+      provider,
     });
   };
 
   const handleToggleEnable = () => {
     setTempSettings({
       ...tempSettings,
-      enabled: !tempSettings.enabled
+      enabled: !tempSettings.enabled,
     });
   };
 
@@ -47,7 +47,7 @@ export default function AISettingsPanel({ settings, onSettingsChange }) {
 
     const updatedSettings = {
       ...tempSettings,
-      apiKey: apiKey || tempSettings.apiKey
+      apiKey: apiKey || tempSettings.apiKey,
     };
 
     onSettingsChange(updatedSettings);
@@ -66,7 +66,7 @@ export default function AISettingsPanel({ settings, onSettingsChange }) {
     if (!tempSettings.provider || !apiKey) {
       setTestResult({
         success: false,
-        message: `No API key found. Please set ${tempSettings.provider === 'openai' ? 'VITE_OPENAI_API_KEY' : 'VITE_CLAUDE_API_KEY'} environment variable on Railway.`
+        message: `No API key found. Please set ${tempSettings.provider === 'openai' ? 'VITE_OPENAI_API_KEY' : 'VITE_CLAUDE_API_KEY'} environment variable on Railway.`,
       });
       return;
     }
@@ -78,12 +78,12 @@ export default function AISettingsPanel({ settings, onSettingsChange }) {
       await aiService.testAPIConnection(tempSettings.provider, apiKey);
       setTestResult({
         success: true,
-        message: `✓ Connected to ${tempSettings.provider === 'openai' ? 'OpenAI' : 'Claude'} successfully!`
+        message: `✓ Connected to ${tempSettings.provider === 'openai' ? 'OpenAI' : 'Claude'} successfully!`,
       });
     } catch (error) {
       setTestResult({
         success: false,
-        message: `✗ Connection failed: ${error.message}`
+        message: `✗ Connection failed: ${error.message}`,
       });
     } finally {
       setTesting(false);
@@ -129,7 +129,9 @@ export default function AISettingsPanel({ settings, onSettingsChange }) {
       {/* Info Banner */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
         <p className="text-sm text-blue-800">
-          💡 <strong>AI-Enhanced Analysis:</strong> For CSV files with more than 7 days of data, each 7-day chunk is analyzed by AI to identify trends, anomalies, and provide recommendations. Results are compiled into a single comprehensive period.
+          💡 <strong>AI-Enhanced Analysis:</strong> For CSV files with more than 7 days of data,
+          each 7-day chunk is analyzed by AI to identify trends, anomalies, and provide
+          recommendations. Results are compiled into a single comprehensive period.
         </p>
       </div>
 
@@ -142,17 +144,20 @@ export default function AISettingsPanel({ settings, onSettingsChange }) {
             onChange={handleToggleEnable}
             className="w-5 h-5 rounded accent-blue-600"
           />
-          <span className="font-semibold text-gray-700">Enable AI-powered analysis for large files</span>
+          <span className="font-semibold text-gray-700">
+            Enable AI-powered analysis for large files
+          </span>
         </label>
       </div>
 
       {/* Provider Selection */}
       <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-700 mb-3">
-          AI Provider
-        </label>
+        <label className="block text-sm font-semibold text-gray-700 mb-3">AI Provider</label>
         <div className="space-y-3">
-          <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50" style={{borderColor: tempSettings.provider === 'openai' ? '#3b82f6' : '#e5e7eb'}}>
+          <label
+            className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+            style={{ borderColor: tempSettings.provider === 'openai' ? '#3b82f6' : '#e5e7eb' }}
+          >
             <input
               type="radio"
               name="provider"
@@ -170,7 +175,10 @@ export default function AISettingsPanel({ settings, onSettingsChange }) {
             </div>
           </label>
 
-          <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50" style={{borderColor: tempSettings.provider === 'claude' ? '#3b82f6' : '#e5e7eb'}}>
+          <label
+            className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+            style={{ borderColor: tempSettings.provider === 'claude' ? '#3b82f6' : '#e5e7eb' }}
+          >
             <input
               type="radio"
               name="provider"
@@ -188,7 +196,10 @@ export default function AISettingsPanel({ settings, onSettingsChange }) {
             </div>
           </label>
 
-          <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50" style={{borderColor: tempSettings.provider === null ? '#3b82f6' : '#e5e7eb'}}>
+          <label
+            className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+            style={{ borderColor: tempSettings.provider === null ? '#3b82f6' : '#e5e7eb' }}
+          >
             <input
               type="radio"
               name="provider"
@@ -209,7 +220,8 @@ export default function AISettingsPanel({ settings, onSettingsChange }) {
       {tempSettings.provider && (
         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
           <p className="text-sm text-green-800">
-            ✓ <strong>Railway Configuration:</strong> API key is loaded from environment variables (VITE_{tempSettings.provider === 'openai' ? 'OPENAI' : 'CLAUDE'}_API_KEY)
+            ✓ <strong>Railway Configuration:</strong> API key is loaded from environment variables
+            (VITE_{tempSettings.provider === 'openai' ? 'OPENAI' : 'CLAUDE'}_API_KEY)
           </p>
         </div>
       )}
@@ -251,11 +263,7 @@ export default function AISettingsPanel({ settings, onSettingsChange }) {
           ) : (
             <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
           )}
-          <p
-            className={`text-sm ${
-              testResult.success ? 'text-green-800' : 'text-red-800'
-            }`}
-          >
+          <p className={`text-sm ${testResult.success ? 'text-green-800' : 'text-red-800'}`}>
             {testResult.message}
           </p>
         </div>
@@ -264,7 +272,14 @@ export default function AISettingsPanel({ settings, onSettingsChange }) {
       {/* Privacy Warning */}
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
         <p className="text-xs text-yellow-800">
-          ⚠️ <strong>Privacy Note:</strong> CSV data and analytics are sent to {tempSettings.provider === 'openai' ? 'OpenAI' : tempSettings.provider === 'claude' ? 'Anthropic' : 'the selected AI'} servers for analysis. Only enable this if you're comfortable sharing your data with third-party AI providers.
+          ⚠️ <strong>Privacy Note:</strong> CSV data and analytics are sent to{' '}
+          {tempSettings.provider === 'openai'
+            ? 'OpenAI'
+            : tempSettings.provider === 'claude'
+              ? 'Anthropic'
+              : 'the selected AI'}{' '}
+          servers for analysis. Only enable this if you&apos;re comfortable sharing your data with
+          third-party AI providers.
         </p>
       </div>
 

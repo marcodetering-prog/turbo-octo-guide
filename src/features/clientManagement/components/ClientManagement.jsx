@@ -91,7 +91,8 @@ export default function ClientManagement({ clients, onAddClient, onDeleteClient,
                     <div className="flex-1">
                       <h3 className="text-xl font-bold">{client.name}</h3>
                       <p className="text-blue-100 text-sm mt-1">
-                        {client.periods?.length || 0} period{client.periods?.length !== 1 ? 's' : ''}
+                        {client.periods?.length || 0} period
+                        {client.periods?.length !== 1 ? 's' : ''}
                       </p>
                     </div>
                     <button
