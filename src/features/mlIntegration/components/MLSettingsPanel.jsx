@@ -7,8 +7,7 @@ import {
   getDefaultMLSettings,
 } from '../services/mlConfigService';
 
-export default function MLSettingsPanel() {
-  const [isOpen, setIsOpen] = useState(false);
+export default function MLSettingsPanel({ isOpen = false, onClose = () => {} }) {
   const [settings, setSettings] = useState(getMLSettings());
   const [testResults, setTestResults] = useState({});
   const [testing, setTesting] = useState({});
@@ -45,7 +44,7 @@ export default function MLSettingsPanel() {
     const success = saveMLSettings(settings);
     if (success) {
       alert('ML settings saved successfully!');
-      setIsOpen(false);
+      onClose();
     } else {
       alert('Failed to save ML settings');
     }
@@ -65,16 +64,7 @@ export default function MLSettingsPanel() {
   };
 
   if (!isOpen) {
-    return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
-        title="ML Settings (AI enhancement features)"
-      >
-        <Settings className="w-5 h-5" />
-        ML Settings
-      </button>
-    );
+    return null;
   }
 
   return (
@@ -87,7 +77,7 @@ export default function MLSettingsPanel() {
             <h2 className="text-2xl font-bold">ML Integration Settings</h2>
           </div>
           <button
-            onClick={() => setIsOpen(false)}
+            onClick={onClose}
             className="text-2xl hover:bg-purple-500 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
           >
             ×
