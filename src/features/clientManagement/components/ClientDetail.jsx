@@ -20,6 +20,9 @@ import UploadSection from './UploadSection';
 import PeriodsGrid from './PeriodsGrid';
 import { processChunkWithML, enhanceAnalyticsWithML } from '../../mlIntegration/services/mlAnalyticsService';
 import { getMLSettings } from '../../mlIntegration/services/mlConfigService';
+import { createAllTenantProfiles } from '../../hierarchyManagement/services/tenantHierarchyService';
+import { createCompleteHierarchy } from '../../hierarchyManagement/services/buildingHierarchyService';
+import TenantHierarchyView from '../../hierarchyManagement/components/TenantHierarchyView';
 
 export default function ClientDetail({
   client,
@@ -36,6 +39,8 @@ export default function ClientDetail({
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
   const [validationResults, setValidationResults] = useState(null);
+  const [hierarchyData, setHierarchyData] = useState(null);
+  const [selectedTenant, setSelectedTenant] = useState(null);
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -131,13 +136,27 @@ export default function ClientDetail({
     const periods = generatePeriodsForType(csvData, groupingType);
     const groupedData = groupDataByPeriods(csvData, periods);
 
-    // Step 3: Calculate analytics
+    // Step 3: Calculate analytics and create hierarchy
     setProgressMessage(uiStrings.clientDetail.progress.calculatingAnalytics);
     setProgress(60);
 
     const newPeriods = Object.values(groupedData).map((periodData) => {
       const { inquiries, allMessages, validationIssues } = parseCSVData(periodData.data);
       const analytics = calculateAnalytics(inquiries, validationIssues, allMessages);
+
+      // Create tenant profiles and hierarchy
+      let hierarchy = null;
+      try {
+        const tenantProfiles = createAllTenantProfiles(inquiries);
+        const tenantKPIs = {};
+        tenantProfiles.forEach((profile) => {
+          tenantKPIs[profile.phoneNumber] = analytics;
+        });
+        hierarchy = createCompleteHierarchy(tenantProfiles, tenantKPIs);
+        setHierarchyData(hierarchy);
+      } catch (err) {
+        console.warn('Failed to create tenant hierarchy:', err);
+      }
 
       return {
         id: `period-${Date.now()}-${Math.random()}`,
@@ -148,6 +167,7 @@ export default function ClientDetail({
         analytics: analytics,
         inquiryCount: inquiries.length,
         validationIssues: validationIssues,
+        hierarchy: hierarchy,
       };
     });
 
@@ -376,8 +396,20 @@ export default function ClientDetail({
           </div>
         )}
 
-        {/* Periods Grid */}
-        <PeriodsGrid periods={client.periods} onSelectPeriod={onSelectPeriod} />
+        {/* Tenant Hierarchy View (replaces period cards) */}
+        {hierarchyData && hierarchyData.length > 0 ? (
+          <TenantHierarchyView properties={hierarchyData} onTenantSelect={(tenant) => {
+            setSelectedTenant(tenant);
+            console.log('Selected tenant:', tenant);
+          }} />
+        ) : client.periods && client.periods.length > 0 && client.periods[0]?.hierarchy ? (
+          <TenantHierarchyView properties={client.periods[0].hierarchy} onTenantSelect={(tenant) => {
+            setSelectedTenant(tenant);
+            console.log('Selected tenant:', tenant);
+          }} />
+        ) : (
+          <PeriodsGrid periods={client.periods} onSelectPeriod={onSelectPeriod} />
+        )}
       </div>
     </div>
   );
