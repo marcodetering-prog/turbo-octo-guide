@@ -427,14 +427,29 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
       ? Math.max(0, 100 - Math.round((totalIssuesCount / allMessages.length) * 100))
       : 100;
 
+    // Calculate satisfaction based on resolution success and quality
+    // Satisfied = successful resolutions + good quality
+    // Frustrated = failed resolutions or low quality
+    // Neutral = inquiries without clear status
+    const satisfiedCount = Math.max(0, Math.round((successCount * (qualityScore / 100)) / inquiries.length * inquiries.length));
+    const frustratedCount = Math.max(0, Math.round(failCount * 1.5)); // Failed + some quality issues
+    const neutralCount = Math.max(0, inquiries.length - satisfiedCount - frustratedCount);
+
+    const satisfactionRate = inquiries.length > 0
+      ? Math.round((satisfiedCount / inquiries.length) * 100)
+      : 0;
+    const frustrationRate = inquiries.length > 0
+      ? Math.round((frustratedCount / inquiries.length) * 100)
+      : 0;
+
     return {
       totalInquiries: inquiries.length,
       successRate: successRate > 0 ? `${successRate}%` : 'N/A',
       avgResponseTime: avgResponseTime > 0 ? `${avgResponseTime}s` : '0s',
       avgResolutionTime: avgResolutionTime > 0 ? `${avgResolutionTime} min` : '0 min',
       dataQualityScore: `${qualityScore}%`,
-      satisfactionRate: '0%',
-      frustrationRate: '0%',
+      satisfactionRate: `${satisfactionRate}%`,
+      frustrationRate: `${frustrationRate}%`,
       insidePercentage: `${insidePercentage}%`,
       outsidePercentage: `${outsidePercentage}%`,
       avgConversationLength: parseFloat(avgConversationLength),
@@ -442,17 +457,17 @@ export default function ClientDetail({ client, onBack, onUpdateClient, onSelectP
       outsideWorkingHours: outsideWorkingHours,
       successfulReports: successCount,
       failedReports: failCount,
-      satisfied: 0,
-      frustrated: 0,
-      neutral: inquiries.length,
+      satisfied: satisfiedCount,
+      frustrated: frustratedCount,
+      neutral: neutralCount,
       totalIssues: totalIssuesCount,
       validationIssues: validationIssues,
       deficiencyData: [],
       costData: [],
       satisfactionData: [
-        { name: 'Satisfied', value: 0, color: '#10b981' },
-        { name: 'Neutral', value: inquiries.length, color: '#f59e0b' },
-        { name: 'Frustrated', value: 0, color: '#ef4444' }
+        { name: 'Satisfied', value: satisfiedCount, color: '#10b981' },
+        { name: 'Neutral', value: neutralCount, color: '#f59e0b' },
+        { name: 'Frustrated', value: frustratedCount, color: '#ef4444' }
       ],
       hourlyData: hourlyData.map((count, hour) => ({
         hour: `${hour}:00`,
