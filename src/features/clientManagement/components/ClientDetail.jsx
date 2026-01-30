@@ -18,6 +18,8 @@ import { parseCSVData } from '../services/csvProcessing';
 import { calculateAnalytics } from '../services/analyticsCalculation';
 import UploadSection from './UploadSection';
 import PeriodsGrid from './PeriodsGrid';
+import { processChunkWithML, enhanceAnalyticsWithML } from '../../mlIntegration/services/mlAnalyticsService';
+import { getMLSettings } from '../../mlIntegration/services/mlConfigService';
 
 export default function ClientDetail({
   client,
@@ -180,28 +182,39 @@ export default function ClientDetail({
       const chunkResults = [];
       const totalChunks = chunks.length;
 
+      const mlSettings = getMLSettings();
+
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
 
-        // Update progress message with chunk number
-        const progressTemplate =
-          aiSettings?.provider && aiSettings?.apiKey
-            ? uiStrings.clientDetail.progress.processingDocument
-            : uiStrings.clientDetail.progress.processingDocumentNoAI;
-        const progressMessage = progressTemplate
-          .replace('{current}', i + 1)
-          .replace('{total}', totalChunks);
-        setProgressMessage(progressMessage);
+        // Determine processing stages
+        const hasAI = aiSettings?.provider && aiSettings?.apiKey;
+        const hasML = mlSettings?.enabled;
+        let processingStage = 'Parsing data';
 
-        // Calculate progress: start at 15%, end at 85% during chunking
-        const chunkProgress = 15 + (i / totalChunks) * 70;
+        if (hasAI && hasML) {
+          processingStage = `Chunk ${i + 1}/${totalChunks}: Analyzing with AI + ML`;
+        } else if (hasAI) {
+          processingStage = `Chunk ${i + 1}/${totalChunks}: Analyzing with AI`;
+        } else if (hasML) {
+          processingStage = `Chunk ${i + 1}/${totalChunks}: Analyzing with ML`;
+        } else {
+          processingStage = `Chunk ${i + 1}/${totalChunks}: Calculating analytics`;
+        }
+
+        setProgressMessage(processingStage);
+
+        // Calculate progress: start at 15%, end at 75% during chunking
+        const chunkProgress = 15 + (i / totalChunks) * 60;
         setProgress(chunkProgress);
 
         const { inquiries, allMessages, validationIssues } = parseCSVData(chunk.data);
         const baseAnalytics = calculateAnalytics(inquiries, validationIssues, allMessages);
 
         let enhancedAnalytics = baseAnalytics;
-        if (aiSettings?.provider && aiSettings?.apiKey) {
+
+        // AI Analysis (runs first)
+        if (hasAI) {
           try {
             const aiInsights = await aiAnalyticsService.analyzeChunkWithAI(
               baseAnalytics,
@@ -217,6 +230,16 @@ export default function ClientDetail({
           }
         }
 
+        // ML Analysis (runs in parallel with AI or independently)
+        if (hasML) {
+          try {
+            const mlInsights = await processChunkWithML(chunk.data, inquiries, mlSettings);
+            enhancedAnalytics = enhanceAnalyticsWithML(enhancedAnalytics, mlInsights);
+          } catch (err) {
+            console.warn('ML analysis failed for chunk, continuing with previous analytics:', err);
+          }
+        }
+
         chunkResults.push({
           startDate: chunk.startDate,
           endDate: chunk.endDate,
@@ -225,9 +248,9 @@ export default function ClientDetail({
         });
       }
 
-      // Step: Aggregate results by month
-      setProgressMessage(uiStrings.clientDetail.progress.aggregatingResults);
-      setProgress(88);
+      // Step: Aggregate results by month (75-85%)
+      setProgressMessage('Aggregating results by month...');
+      setProgress(75);
 
       const monthlyGroups = chunkingService.groupChunksByMonth(chunkResults);
       const newPeriods = monthlyGroups.map((group) => {
@@ -252,14 +275,15 @@ export default function ClientDetail({
           fileName: fileName,
           analytics: monthlyAnalytics,
           inquiryCount: monthlyInquiryCount,
-          isAIAnalyzed: true,
+          isAIAnalyzed: aiSettings?.provider && aiSettings?.apiKey ? true : false,
+          isMLAnalyzed: mlSettings?.enabled ? true : false,
           chunkCount: group.chunks.length,
         };
       });
 
-      // Step: Validate KPIs against baseline
+      // Step: Validate KPIs against baseline (85-92%)
       setProgressMessage('Validating KPI accuracy...');
-      setProgress(92);
+      setProgress(85);
 
       // Validate the first period's analytics as representative
       if (newPeriods.length > 0) {
@@ -270,7 +294,7 @@ export default function ClientDetail({
         console.log('KPI Validation Results:', validation);
       }
 
-      // Step: Save results
+      // Step: Save results (92-98%)
       setProgressMessage(uiStrings.clientDetail.progress.savingResults);
       setProgress(95);
 
@@ -281,6 +305,7 @@ export default function ClientDetail({
 
       onUpdateClient(updatedClient);
 
+      // Final step: Complete (98-100%)
       setProgress(100);
       setProgressMessage(uiStrings.clientDetail.progress.uploadComplete);
       setTimeout(() => {
