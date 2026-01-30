@@ -157,45 +157,52 @@ const extractPhoneFromMessages = (messages) => {
 };
 
 /**
- * Group inquiries by phone number (tenant identifier)
+ * Group inquiries by tenant name (tenant identifier)
  * @param {Array} inquiries - Array of conversations
- * @returns {Object} {phoneNumber: [{conversationId, messages, ...}]}
+ * @returns {Object} {tenantName: [{conversationId, messages, ...}]}
  */
-export const groupByPhone = (inquiries) => {
-  const phoneMap = {};
+export const groupByTenantName = (inquiries) => {
+  const tenantMap = {};
 
   inquiries.forEach((conversation) => {
     const firstMsg = conversation[0];
     if (!firstMsg) return;
 
-    // Extract phone number from conversation messages
-    let phone = extractPhoneFromMessages(conversation);
+    // Extract tenant name from conversation messages
+    let tenantName = extractTenantName(conversation);
 
-    // Fallback if no phone found: Use ConversationId as unique identifier
-    if (!phone) {
-      phone = firstMsg.ConversationId || 'unknown';
+    // Fallback if no name found: Use ConversationId as unique identifier
+    if (!tenantName) {
+      tenantName = firstMsg.ConversationId || 'Unknown Tenant';
     }
 
-    // Normalize phone number
-    phone = String(phone).trim();
+    // Normalize tenant name
+    tenantName = String(tenantName).trim();
 
-    if (!phoneMap[phone]) {
-      phoneMap[phone] = [];
+    if (!tenantMap[tenantName]) {
+      tenantMap[tenantName] = [];
     }
 
-    phoneMap[phone].push(conversation);
+    tenantMap[tenantName].push(conversation);
   });
 
-  return phoneMap;
+  return tenantMap;
+};
+
+/**
+ * @deprecated Use groupByTenantName instead
+ */
+export const groupByPhone = (inquiries) => {
+  return groupByTenantName(inquiries);
 };
 
 /**
  * Create tenant profile from grouped conversations
- * @param {String} phoneNumber - Tenant phone number
+ * @param {String} tenantIdentifier - Tenant identifier (name, phone, or conversation ID)
  * @param {Array} conversations - All conversations for this tenant
  * @returns {Object} Tenant profile with metadata
  */
-export const createTenantProfile = (phoneNumber, conversations) => {
+export const createTenantProfile = (tenantIdentifier, conversations) => {
   if (!conversations || conversations.length === 0) {
     return null;
   }
@@ -212,7 +219,7 @@ export const createTenantProfile = (phoneNumber, conversations) => {
   });
 
   // Extract profile information
-  const name = extractTenantName(allMessages);
+  const name = extractTenantName(allMessages) || tenantIdentifier;
   const address = extractAddress(allMessages);
   const email = extractEmail(allMessages);
 
@@ -228,7 +235,7 @@ export const createTenantProfile = (phoneNumber, conversations) => {
   const maxDate = allDates.length > 0 ? new Date(Math.max(...allDates.map((d) => d.getTime()))) : null;
 
   return {
-    phoneNumber,
+    phoneNumber: tenantIdentifier,
     name: name || 'Unknown Tenant',
     email: email || null,
     address: address.fullAddress || 'Unknown Address',
@@ -251,11 +258,11 @@ export const createTenantProfile = (phoneNumber, conversations) => {
  * @returns {Array} Array of tenant profiles
  */
 export const createAllTenantProfiles = (inquiries) => {
-  const phoneMap = groupByPhone(inquiries);
+  const tenantMap = groupByTenantName(inquiries);
   const tenantProfiles = [];
 
-  for (const [phone, conversations] of Object.entries(phoneMap)) {
-    const profile = createTenantProfile(phone, conversations);
+  for (const [tenantName, conversations] of Object.entries(tenantMap)) {
+    const profile = createTenantProfile(tenantName, conversations);
     if (profile) {
       tenantProfiles.push(profile);
     }
@@ -266,16 +273,16 @@ export const createAllTenantProfiles = (inquiries) => {
 };
 
 /**
- * Get tenant profile by phone number
- * @param {String} phoneNumber - Tenant phone number
+ * Get tenant profile by tenant name
+ * @param {String} tenantName - Tenant name
  * @param {Array} inquiries - Array of all conversations
  * @returns {Object} Tenant profile
  */
-export const getTenantProfile = (phoneNumber, inquiries) => {
-  const phoneMap = groupByPhone(inquiries);
-  const conversations = phoneMap[phoneNumber];
+export const getTenantProfile = (tenantName, inquiries) => {
+  const tenantMap = groupByTenantName(inquiries);
+  const conversations = tenantMap[tenantName];
 
   if (!conversations) return null;
 
-  return createTenantProfile(phoneNumber, conversations);
+  return createTenantProfile(tenantName, conversations);
 };
