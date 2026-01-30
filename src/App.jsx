@@ -114,7 +114,7 @@ export default function App() {
           aiSettings={aiSettings}
         />
         {showMLSettings && (
-          <MLSettingsPanel onClose={() => setShowMLSettings(false)} />
+          <MLSettingsPanel isOpen={showMLSettings} onClose={() => setShowMLSettings(false)} />
         )}
       </div>
     );
@@ -141,7 +141,7 @@ export default function App() {
           aiSettings={aiSettings}
         />
         {showMLSettings && (
-          <MLSettingsPanel onClose={() => setShowMLSettings(false)} />
+          <MLSettingsPanel isOpen={showMLSettings} onClose={() => setShowMLSettings(false)} />
         )}
       </div>
     );
