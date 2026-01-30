@@ -10,33 +10,35 @@
  * @returns {String} Extracted tenant name or null
  */
 const extractTenantName = (messages) => {
-  // Pattern 1: Explicit salutation (Herr/Frau [Name])
-  const saluationPattern = /(Herr|Frau|Mr|Ms|Mme|M\.)\s+([A-Za-zäöüß\s\-]+?)(?:\s|,|\.)/i;
+  // Pattern 1: Explicit salutation (Herr/Frau [FirstName] [LastName])
+  // Only capture up to 2 words (first + last name)
+  const salutationPattern = /(Herr|Frau|Mr|Ms|Mme|M\.)\s+([A-Za-zäöüß]+(?:\s+[A-Za-zäöüß]+)?)\s*[,\.]?/i;
 
-  // Pattern 2: "Name" or "My name is"
-  const nameIsPattern = /(?:my\s+)?name\s+(?:is\s+)?([A-Za-zäöüß\s\-]+?)(?:\s|,|\.|$)/i;
-
-  // Pattern 3: Common signature pattern (at end of messages)
-  const signaturePattern = /^([A-Za-zäöüß\s\-]+?)$/;
+  // Pattern 2: "name is John Smith" - only 1-2 words
+  const nameIsPattern = /(?:my\s+)?name\s+(?:is\s+)?([A-Za-zäöüß]+(?:\s+[A-Za-zäöüß]+)?)\s*[,\.]?/i;
 
   for (const msg of messages) {
     if (!msg.Content) continue;
-    const content = msg.Content.toString();
+    const content = msg.Content.toString().substring(0, 500); // Limit to first 500 chars
 
-    // Try salutation pattern
-    const salutationMatch = content.match(saluationPattern);
+    // Try salutation pattern - most reliable
+    const salutationMatch = content.match(salutationPattern);
     if (salutationMatch && salutationMatch[2]) {
       const name = salutationMatch[2].trim();
-      if (name.length > 2 && name.length < 50) {
+      // Only accept 1-2 word names, max 30 chars
+      const wordCount = name.split(/\s+/).length;
+      if (name.length > 2 && name.length <= 30 && wordCount <= 2) {
         return name;
       }
     }
 
-    // Try name pattern
+    // Try name pattern - less reliable
     const nameMatch = content.match(nameIsPattern);
     if (nameMatch && nameMatch[1]) {
       const name = nameMatch[1].trim();
-      if (name.length > 2 && name.length < 50) {
+      // Only accept 1-2 word names, max 30 chars
+      const wordCount = name.split(/\s+/).length;
+      if (name.length > 2 && name.length <= 30 && wordCount <= 2) {
         return name;
       }
     }
