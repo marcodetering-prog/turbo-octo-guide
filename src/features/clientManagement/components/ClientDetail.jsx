@@ -201,6 +201,7 @@ export default function ClientDetail({
       const chunks = chunkingService.chunkCSVByDays(csvData, 7);
       const chunkResults = [];
       const totalChunks = chunks.length;
+      const allInquiries = []; // Collect all inquiries for hierarchy
 
       const mlSettings = getMLSettings();
 
@@ -229,6 +230,7 @@ export default function ClientDetail({
         setProgress(chunkProgress);
 
         const { inquiries, allMessages, validationIssues } = parseCSVData(chunk.data);
+        allInquiries.push(...inquiries); // Collect for hierarchy
         const baseAnalytics = calculateAnalytics(inquiries, validationIssues, allMessages);
 
         let enhancedAnalytics = baseAnalytics;
@@ -273,6 +275,24 @@ export default function ClientDetail({
       setProgress(75);
 
       const monthlyGroups = chunkingService.groupChunksByMonth(chunkResults);
+
+      // Create hierarchy from all collected inquiries
+      let hierarchyData = null;
+      try {
+        const tenantProfiles = createAllTenantProfiles(allInquiries);
+        const aggregatedAnalytics = chunkingService.aggregateChunkAnalytics(
+          chunkResults.map(cr => ({ ...cr, analytics: cr.analytics }))
+        );
+        const tenantKPIs = {};
+        tenantProfiles.forEach((profile) => {
+          tenantKPIs[profile.phoneNumber] = aggregatedAnalytics;
+        });
+        hierarchyData = createCompleteHierarchy(tenantProfiles, tenantKPIs);
+        setHierarchyData(hierarchyData);
+      } catch (err) {
+        console.warn('Failed to create tenant hierarchy for large file:', err);
+      }
+
       const newPeriods = monthlyGroups.map((group) => {
         const monthlyAnalytics = chunkingService.aggregateChunkAnalytics(group.chunks);
         const monthlyInquiryCount = group.chunks.reduce(
@@ -298,6 +318,7 @@ export default function ClientDetail({
           isAIAnalyzed: aiSettings?.provider && aiSettings?.apiKey ? true : false,
           isMLAnalyzed: mlSettings?.enabled ? true : false,
           chunkCount: group.chunks.length,
+          hierarchy: hierarchyData,
         };
       });
 
