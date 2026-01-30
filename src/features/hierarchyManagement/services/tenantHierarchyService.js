@@ -11,11 +11,13 @@
  */
 const extractTenantName = (messages) => {
   // Pattern 1: Explicit salutation (Herr/Frau [FirstName] [LastName])
+  // Supports hyphenated names (Marie-Anne) and apostrophes (O'Brien)
   // Only capture up to 2 words (first + last name)
-  const salutationPattern = /(Herr|Frau|Mr|Ms|Mme|M\.)\s+([A-Za-zäöüß]+(?:\s+[A-Za-zäöüß]+)?)\s*[,\.]?/i;
+  const salutationPattern = /(Herr|Frau|Mr|Ms|Mme|M\.)\s+([A-Za-zäöüß]+(?:[-'][A-Za-zäöüß]+)*(?:\s+[A-Za-zäöüß]+(?:[-'][A-Za-zäöüß]+)*)?)\s*[,\.]?/i;
 
   // Pattern 2: "name is John Smith" - only 1-2 words
-  const nameIsPattern = /(?:my\s+)?name\s+(?:is\s+)?([A-Za-zäöüß]+(?:\s+[A-Za-zäöüß]+)?)\s*[,\.]?/i;
+  // Supports hyphenated names and apostrophes
+  const nameIsPattern = /(?:my\s+)?name\s+(?:is\s+)?([A-Za-zäöüß]+(?:[-'][A-Za-zäöüß]+)*(?:\s+[A-Za-zäöüß]+(?:[-'][A-Za-zäöüß]+)*)?)\s*[,\.]?/i;
 
   for (const msg of messages) {
     if (!msg.Content) continue;
