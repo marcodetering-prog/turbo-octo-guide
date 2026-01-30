@@ -15,6 +15,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { TrendingUp, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
+import MLInsightsPanel from '../../mlIntegration/components/MLInsightsPanel';
 
 export default function KPIDashboard({
   analytics,
@@ -278,6 +279,11 @@ export default function KPIDashboard({
                 </BarChart>
               </ResponsiveContainer>
             </div>
+          )}
+
+          {/* ML Insights Panel */}
+          {analytics.mlInsights && (
+            <MLInsightsPanel mlInsights={analytics.mlInsights} />
           )}
 
           {/* Cost Estimates */}

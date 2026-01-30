@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { Settings } from 'lucide-react';
 import * as storage from './services/storage';
 import { ClientManagement, ClientDetail } from './features/clientManagement';
 import KPIDashboard from './features/analytics/components/KPIDashboard';
 import TrendComparisonView from './features/trendAnalysis/components/TrendComparisonView';
+import MLSettingsPanel from './features/mlIntegration/components/MLSettingsPanel';
 
 export default function App() {
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [showTrendAnalysis, setShowTrendAnalysis] = useState(false);
+  const [showMLSettings, setShowMLSettings] = useState(false);
   const [aiSettings] = useState(storage.getAISettings());
 
   const loadClients = () => {
@@ -91,6 +94,16 @@ export default function App() {
   if (selectedPeriod && !showTrendAnalysis) {
     return (
       <div>
+        {/* Global Header with ML Settings */}
+        <div className="bg-white border-b border-gray-200 shadow-sm p-4 flex justify-end">
+          <button
+            onClick={() => setShowMLSettings(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
+          >
+            <Settings className="w-5 h-5" />
+            ML Settings
+          </button>
+        </div>
         <KPIDashboard
           analytics={selectedPeriod.analytics}
           period={selectedPeriod}
@@ -100,6 +113,9 @@ export default function App() {
           onTrendAnalysis={() => setShowTrendAnalysis(true)}
           aiSettings={aiSettings}
         />
+        {showMLSettings && (
+          <MLSettingsPanel onClose={() => setShowMLSettings(false)} />
+        )}
       </div>
     );
   }
@@ -107,23 +123,53 @@ export default function App() {
   // 3. Trend Analysis View
   if (showTrendAnalysis && selectedClient.periods.length >= 2) {
     return (
-      <TrendComparisonView
-        client={selectedClient}
-        periods={selectedClient.periods}
-        onBack={() => setShowTrendAnalysis(false)}
-        aiSettings={aiSettings}
-      />
+      <div>
+        {/* Global Header with ML Settings */}
+        <div className="bg-white border-b border-gray-200 shadow-sm p-4 flex justify-end">
+          <button
+            onClick={() => setShowMLSettings(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
+          >
+            <Settings className="w-5 h-5" />
+            ML Settings
+          </button>
+        </div>
+        <TrendComparisonView
+          client={selectedClient}
+          periods={selectedClient.periods}
+          onBack={() => setShowTrendAnalysis(false)}
+          aiSettings={aiSettings}
+        />
+        {showMLSettings && (
+          <MLSettingsPanel onClose={() => setShowMLSettings(false)} />
+        )}
+      </div>
     );
   }
 
   // 4. Client Detail View - Periods Overview
   return (
-    <ClientDetail
-      client={selectedClient}
-      onBack={handleBackToClients}
-      onUpdateClient={handleUpdateClient}
-      onSelectPeriod={handleSelectPeriod}
-      aiSettings={aiSettings}
-    />
+    <div>
+      {/* Global Header with ML Settings */}
+      <div className="bg-white border-b border-gray-200 shadow-sm p-4 flex justify-end">
+        <button
+          onClick={() => setShowMLSettings(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
+        >
+          <Settings className="w-5 h-5" />
+          ML Settings
+        </button>
+      </div>
+      <ClientDetail
+        client={selectedClient}
+        onBack={handleBackToClients}
+        onUpdateClient={handleUpdateClient}
+        onSelectPeriod={handleSelectPeriod}
+        aiSettings={aiSettings}
+      />
+      {showMLSettings && (
+        <MLSettingsPanel onClose={() => setShowMLSettings(false)} />
+      )}
+    </div>
   );
 }
