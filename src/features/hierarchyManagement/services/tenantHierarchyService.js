@@ -114,24 +114,40 @@ const extractEmail = (messages) => {
  * @returns {String} Phone number or null
  */
 const extractPhoneFromMessages = (messages) => {
-  // Pattern for Swiss phone numbers (flexible format)
+  // Pattern for phone numbers (very flexible to catch any format)
   // Matches: 0764936161, 076 493 6161, 0041764936161, +41764936161, etc.
-  const phonePattern = /(?:\+41|0041|0)?[\s\-.]?(?:\(0\)[\s\-.]?)?[1-9][\d\s\-.\(\)]{7,12}\d/g;
+  const phonePatterns = [
+    // Swiss format: +41, 0041, or 0 followed by digits
+    /(?:\+41|0041|0)[\s\-\.]?(?:\(0\)[\s\-\.]?)?(?:79|78|77|76|75|74|73|72|71|70|69|68|67|66|65|64|63|62|61|60|59|58|57|56|55|54|53|52|51|50|44|43|42|41|40|39|38|37|36|35|34|33|32|31|30|29|28|27|26|25|24|23|22|21|20|19|18|17|16|15|14|13|12|11|10|9|8|7|6|5|4|3|2|1)[\s\-\.]?(?:\d[\s\-\.]?){5,9}\d/g,
+    // Generic phone format: sequences of digits separated by spaces/dashes
+    /(?:tel|phone|tel\.?|ph\.?|fax)[\s:]*[\+]?[\d\s\-\.\(\)]{9,20}/gi,
+    // Just a long sequence of digits (9-15 digits)
+    /(?:^|\s|\D)((?:\+?41|0041|0)[\d\s\-\.]{8,15})/gm,
+  ];
 
   for (const msg of messages) {
     if (!msg.Content) continue;
     const content = msg.Content.toString();
-    const matches = content.match(phonePattern);
 
-    if (matches) {
-      for (const match of matches) {
-        // Clean up the phone number - extract digits only
-        const digits = match.replace(/\D/g, '');
-        // Check if it's long enough to be a phone number (at least 9 digits)
-        if (digits.length >= 9) {
-          // Normalize to Swiss 0-format
-          const normalized = digits.startsWith('41') ? '0' + digits.substring(2) : digits;
-          return normalized;
+    for (const pattern of phonePatterns) {
+      const matches = content.match(pattern);
+      if (matches) {
+        for (const match of matches) {
+          // Clean up the phone number - extract digits only
+          const digits = match.replace(/\D/g, '');
+          // Check if it's long enough to be a phone number (at least 9 digits for Swiss numbers)
+          if (digits.length >= 9 && digits.length <= 15) {
+            // Normalize to Swiss 0-format
+            let normalized = digits;
+            if (digits.startsWith('41')) {
+              normalized = '0' + digits.substring(2);
+            } else if (!normalized.startsWith('0')) {
+              normalized = '0' + normalized;
+            }
+            if (normalized.length >= 9) {
+              return normalized;
+            }
+          }
         }
       }
     }
@@ -152,28 +168,11 @@ export const groupByPhone = (inquiries) => {
     const firstMsg = conversation[0];
     if (!firstMsg) return;
 
-    // Try multiple strategies to extract phone number
-    let phone = null;
+    // Extract phone number from conversation messages
+    let phone = extractPhoneFromMessages(conversation);
 
-    // Strategy 1: Check CSV columns (multiple possible column names)
-    if (firstMsg.reporterContactPhoneNumber) {
-      phone = firstMsg.reporterContactPhoneNumber;
-    } else if (firstMsg.PhoneNumber) {
-      phone = firstMsg.PhoneNumber;
-    } else if (firstMsg.phone) {
-      phone = firstMsg.phone;
-    } else if (firstMsg.Phone) {
-      phone = firstMsg.Phone;
-    } else if (firstMsg['Reporter Contact Phone Number']) {
-      phone = firstMsg['Reporter Contact Phone Number'];
-    } else {
-      // Strategy 2: Extract phone from messages
-      phone = extractPhoneFromMessages(conversation);
-    }
-
-    // Fallback if no phone found
+    // Fallback if no phone found: Use ConversationId as unique identifier
     if (!phone) {
-      // Use ConversationId as unique identifier
       phone = firstMsg.ConversationId || 'unknown';
     }
 
