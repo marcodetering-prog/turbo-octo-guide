@@ -15,31 +15,40 @@ export default function UploadSection({
   if (!showUpload) return null;
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-      <h2 className="text-xl font-bold text-gray-800 mb-4">
+    <div className="bg-white rounded-2xl border border-indigo-100 shadow-sm p-8 mb-8">
+      <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+        <Upload className="w-5 h-5 text-indigo-500" />
         {uiStrings.clientDetail.uploadSection.title}
       </h2>
+
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 animate-pulse">
           <AlertCircle className="text-red-600 mt-0.5 flex-shrink-0" size={20} />
-          <p className="text-red-700">{error}</p>
+          <p className="text-red-700 font-medium">{error}</p>
         </div>
       )}
+
       {loading && progress > 0 && (
-        <div className="mb-6">
-          <ProgressBar
-            progress={progress}
-            message={progressMessage}
-            isComplete={progress === 100}
-            variant={progress === 100 ? 'success' : 'default'}
-          />
+        <div className="mb-8">
+          <div className="flex justify-between text-sm font-medium text-slate-600 mb-2">
+            <span>{progressMessage}</span>
+            <span>{progress}%</span>
+          </div>
+          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-300 ease-out"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
         </div>
       )}
+
       <div className="flex gap-3">
         <label
-          className={`flex-1 px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-            loading ? 'border-gray-300 bg-gray-50' : 'border-gray-300 hover:border-blue-500'
-          }`}
+          className={`group flex-1 py-12 px-6 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300 relative overflow-hidden ${loading
+              ? 'border-slate-200 bg-slate-50 cursor-wait opacity-70'
+              : 'border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50/30'
+            }`}
         >
           <input
             type="file"
@@ -48,21 +57,25 @@ export default function UploadSection({
             disabled={loading}
             className="hidden"
           />
-          <div className="text-center">
+          <div className="text-center relative z-10 transition-transform group-hover:scale-105 duration-300">
             {loading ? (
               <>
-                <Loader2 className="w-6 h-6 text-blue-600 mx-auto mb-2 animate-spin" />
-                <p className="text-blue-600 font-semibold">
+                <div className="w-12 h-12 mx-auto mb-4 text-indigo-500 animate-spin">
+                  <Loader2 className="w-full h-full" />
+                </div>
+                <p className="text-indigo-600 font-semibold text-lg">
                   {uiStrings.clientDetail.uploadSection.processing}
                 </p>
               </>
             ) : (
               <>
-                <Upload className="w-6 h-6 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-700 font-semibold">
+                <div className="w-16 h-16 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-indigo-100 transition-colors shadow-sm">
+                  <Upload className="w-8 h-8" />
+                </div>
+                <p className="text-slate-900 font-bold text-lg mb-1">
                   {uiStrings.clientDetail.uploadSection.clickToUpload}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-slate-500">
                   {uiStrings.clientDetail.uploadSection.dragAndDrop}
                 </p>
               </>

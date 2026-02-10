@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import * as storage from './services/storage';
+import * as storage from './services/supabaseService';
 import { ClientManagement, ClientDetail } from './features/clientManagement';
 
 export default function App() {
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
 
-  const loadClients = () => {
-    const loadedClients = storage.getClients();
+  const loadClients = async () => {
+    const loadedClients = await storage.getClients();
     setClients(loadedClients);
   };
 
@@ -24,16 +24,16 @@ export default function App() {
     }
   }, [selectedClient]);
 
-  const handleAddClient = (name) => {
-    const newClient = storage.addClient(name);
+  const handleAddClient = async (name) => {
+    const newClient = await storage.addClient(name);
     if (newClient) {
-      loadClients();
+      await loadClients();
     }
   };
 
-  const handleDeleteClient = (clientId) => {
-    storage.deleteClient(clientId);
-    loadClients();
+  const handleDeleteClient = async (clientId) => {
+    await storage.deleteClient(clientId);
+    await loadClients();
     if (selectedClient?.id === clientId) {
       setSelectedClient(null);
     }
@@ -43,11 +43,12 @@ export default function App() {
     setSelectedClient(client);
   };
 
-  const handleUpdateClient = (updatedClient) => {
-    storage.updateClient(updatedClient.id, { data: updatedClient.data });
-    loadClients();
+  const handleUpdateClient = async (updatedClient) => {
+    await storage.updateClient(updatedClient.id, { data: updatedClient.data });
+    await loadClients();
     // Refresh selected client
-    const freshClient = storage.getClients().find((c) => c.id === updatedClient.id);
+    const clients = await storage.getClients();
+    const freshClient = clients.find((c) => c.id === updatedClient.id);
     setSelectedClient(freshClient);
   };
 
